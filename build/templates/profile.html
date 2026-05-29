@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniManagement - My Profile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    {% set display_name = session.get('name', 'User') %}
+    {% set account_id = user_id if user_id is defined else session.get('username', session.get('user_id', '')) %}
+    <!-- Top Navbar -->
+    <header class="bg-white border-b border-gray-200 shadow">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-yellow-400 rounded-2xl flex items-center justify-center text-white font-bold">U</div>
+                <h1 class="text-2xl font-bold">UniManagement</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <span class="text-sm text-gray-600">{{ display_name }}</span>
+                <a href="{{ url_for('dashboard') }}" class="text-gray-600 hover:text-gray-900">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                </a>
+                <a href="{{ url_for('logout') }}" class="text-red-600 hover:text-red-900">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        <!-- Flash Messages -->
+        {% if get_flashed_messages() %}
+            {% for category, message in get_flashed_messages(with_categories=true) %}
+                <div class="mb-6 p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-800 border border-green-300{% elif category == 'danger' %}bg-red-100 text-red-800 border border-red-300{% else %}bg-blue-100 text-blue-800 border border-blue-300{% endif %}">
+                    <div class="flex items-center">
+                        {% if category == 'success' %}
+                            <i class="fas fa-check-circle mr-3 text-lg"></i>
+                        {% elif category == 'danger' %}
+                            <i class="fas fa-exclamation-circle mr-3 text-lg"></i>
+                        {% else %}
+                            <i class="fas fa-info-circle mr-3 text-lg"></i>
+                        {% endif %}
+                        {{ message }}
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Sidebar -->
+            <div class="md:col-span-1">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <!-- Profile Picture -->
+                    <div class="text-center mb-6">
+                        <div class="w-24 h-24 rounded-full overflow-hidden mx-auto mb-4 bg-gray-100">
+                            {% if user.profile_image %}
+                                <img src="{{ url_for('static', filename=user.profile_image) }}" alt="Profile photo" class="w-full h-full object-cover" />
+                            {% else %}
+                                <div class="w-full h-full bg-gradient-to-br from-yellow-400 to-yellow-500 flex items-center justify-center text-white text-5xl font-bold">
+                                    {{ display_name[:1] | upper }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <h2 class="text-xl font-bold text-gray-900">{{ display_name }}</h2>
+                        <p class="text-sm text-gray-600 capitalize">{{ session.role }} Account</p>
+                    </div>
+
+                    <!-- Quick Info -->
+                    <div class="space-y-3 pt-6 border-t">
+                        <div class="flex items-center gap-2 text-sm">
+                            <i class="fas fa-envelope text-yellow-400 w-5"></i>
+                            <span class="text-gray-600">{{ user.email }}</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm">
+                            <i class="fas fa-phone text-yellow-400 w-5"></i>
+                            <span class="text-gray-600">{{ user.phone or 'Not provided' }}</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm">
+                            <i class="fas fa-user-tag text-yellow-400 w-5"></i>
+                            <span class="text-gray-600 capitalize">{{ session.role }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="mt-6 space-y-2">
+                        <a href="{{ url_for('change_password') }}" class="block w-full bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 px-4 rounded-lg text-center transition">
+                            <i class="fas fa-key mr-2"></i>Change Password
+                        </a>
+                        <a href="{{ url_for('logout') }}" class="block w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg text-center transition">
+                            <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="md:col-span-2">
+                <!-- Edit Profile Card -->
+                <div class="bg-white rounded-lg shadow p-6 mb-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-6">
+                        <i class="fas fa-user-edit text-yellow-400 mr-2"></i>Edit Profile
+                    </h3>
+
+                    <form method="POST" enctype="multipart/form-data" class="space-y-4">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <!-- Full Name -->
+                        <div>
+                            <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Full Name
+                            </label>
+                            <input 
+                                type="text" 
+                                id="name" 
+                                name="name" 
+                                value="{{ user.name }}"
+                                required
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition"
+                            />
+                        </div>
+
+                        <!-- Email -->
+                        <div>
+                            <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Email Address
+                            </label>
+                            <input 
+                                type="email" 
+                                id="email" 
+                                name="email" 
+                                value="{{ user.email }}"
+                                required
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition"
+                            />
+                        </div>
+
+                        <!-- Phone -->
+                        <div>
+                            <label for="phone" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Phone Number
+                            </label>
+                            <input 
+                                type="tel" 
+                                id="phone" 
+                                name="phone" 
+                                value="{{ user.phone or '' }}"
+                                placeholder="Enter your phone number"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition"
+                            />
+                        </div>
+
+                        <!-- Profile Photo -->
+                        <div>
+                            <label for="profile_image" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Profile Photo
+                            </label>
+                            <input
+                                type="file"
+                                id="profile_image"
+                                name="profile_image"
+                                accept="image/png, image/jpeg, image/jpg, image/gif"
+                                class="w-full text-sm text-gray-700 file:bg-yellow-400 file:text-white file:px-4 file:py-2 file:rounded-lg file:border-0"
+                            />
+                            <p class="text-xs text-gray-500 mt-2">Upload a profile photo (max 2MB).</p>
+                        </div>
+
+                        <!-- Department -->
+                        <div>
+                            <label for="department" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Department / Field of Study
+                            </label>
+                            <input 
+                                type="text" 
+                                id="department" 
+                                name="department" 
+                                value="{{ user.department or '' }}"
+                                placeholder="e.g., Computer Science, Business, Engineering"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition"
+                            />
+                        </div>
+
+                        <!-- Student ID -->
+                        <div>
+                            <label for="student_id" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Student ID / Employee ID
+                            </label>
+                            <input 
+                                type="text" 
+                                id="student_id" 
+                                name="student_id" 
+                                value="{{ user.student_id or '' }}"
+                                placeholder="e.g., STU2024001 or EMP001"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition"
+                            />
+                        </div>
+
+                        <!-- Address -->
+                        <div>
+                            <label for="address" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Street Address
+                            </label>
+                            <input 
+                                type="text" 
+                                id="address" 
+                                name="address" 
+                                value="{{ user.address or '' }}"
+                                placeholder="Enter your street address"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition"
+                            />
+                        </div>
+
+                        <!-- City -->
+                        <div>
+                            <label for="city" class="block text-sm font-semibold text-gray-700 mb-2">
+                                City / Town
+                            </label>
+                            <input 
+                                type="text" 
+                                id="city" 
+                                name="city" 
+                                value="{{ user.city or '' }}"
+                                placeholder="Enter your city"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition"
+                            />
+                        </div>
+
+                        <!-- Username (Read-only) -->
+                        <div>
+                            <label for="username" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Username (Cannot be changed)
+                            </label>
+                            <input 
+                                type="text" 
+                                id="username" 
+                                value="{{ account_id }}"
+                                disabled
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+                            />
+                        </div>
+
+                        <!-- Role (Read-only) -->
+                        <div>
+                            <label for="role" class="block text-sm font-semibold text-gray-700 mb-2">
+                                Role (Contact admin to change)
+                            </label>
+                            <input 
+                                type="text" 
+                                id="role" 
+                                value="{{ session.role | capitalize }}"
+                                disabled
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 capitalize"
+                            />
+                        </div>
+
+                        <!-- Save Button -->
+                        <button 
+                            type="submit" 
+                            class="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 transform hover:scale-105 mt-6"
+                        >
+                            <i class="fas fa-save mr-2"></i>Save Changes
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Account Info Card -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">
+                        <i class="fas fa-info-circle text-yellow-400 mr-2"></i>Account Information
+                    </h3>
+                    
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between py-2 border-b">
+                            <span class="text-gray-600">Username:</span>
+                            <span class="font-semibold text-gray-900">{{ account_id }}</span>
+                        </div>
+                        <div class="flex justify-between py-2 border-b">
+                            <span class="text-gray-600">Full Name:</span>
+                            <span class="font-semibold text-gray-900">{{ user.name }}</span>
+                        </div>
+                        <div class="flex justify-between py-2 border-b">
+                            <span class="text-gray-600">Email:</span>
+                            <span class="font-semibold text-gray-900">{{ user.email }}</span>
+                        </div>
+                        <div class="flex justify-between py-2 border-b">
+                            <span class="text-gray-600">Phone:</span>
+                            <span class="font-semibold text-gray-900">{{ user.phone or 'Not provided' }}</span>
+                        </div>
+                        <div class="flex justify-between py-2 border-b">
+                            <span class="text-gray-600">Department:</span>
+                            <span class="font-semibold text-gray-900">{{ user.department or 'Not provided' }}</span>
+                        </div>
+                        <div class="flex justify-between py-2 border-b">
+                            <span class="text-gray-600">Student/Employee ID:</span>
+                            <span class="font-semibold text-gray-900">{{ user.student_id or 'Not provided' }}</span>
+                        </div>
+                        <div class="flex justify-between py-2 border-b">
+                            <span class="text-gray-600">Address:</span>
+                            <span class="font-semibold text-gray-900">{{ user.address or 'Not provided' }}</span>
+                        </div>
+                        <div class="flex justify-between py-2">
+                            <span class="text-gray-600">City:</span>
+                            <span class="font-semibold text-gray-900">{{ user.city or 'Not provided' }}</span>
+                        </div>
+                        <div class="flex justify-between py-2 border-t pt-2">
+                            <span class="text-gray-600">Role:</span>
+                            <span class="font-semibold text-gray-900 capitalize">{{ session.role }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniFaculty - Lecturer Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+        
+        .nav-link {
+            transition: all 0.2s ease;
+        }
+        
+        .nav-link:hover {
+            background-color: rgb(234 179 8 / 0.1);
+            transform: translateX(8px);
+        }
+        
+        .nav-link-active {
+            background-color: rgb(234 179 8);
+            color: white;
+            border-radius: 8px;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+    {% set display_name = session.get('name', user_name | default('Staff')) %}
+    {% set display_initial = display_name[:1] | upper %}
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white border-r border-gray-200 shadow-xl flex flex-col">
+            <div class="p-6 border-b">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-yellow-400 rounded-2xl flex items-center justify-center text-white font-bold text-2xl">U</div>
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-tight">Faculty</h1>
+                        <p class="text-xs text-gray-500">Lecturer Portal</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto py-6 px-3">
+                <nav class="space-y-1">
+                    <a href="#" onclick="navigateTo('dashboard')" class="nav-link nav-link-active flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-dashboard">
+                        <i class="fa-solid fa-gauge w-5"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="#" onclick="navigateTo('myclasses')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-myclasses">
+                        <i class="fa-solid fa-chalkboard-teacher w-5"></i>
+                        <span>My Classes</span>
+                    </a>
+                    <a href="#" onclick="navigateTo('attendance')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-attendance">
+                        <i class="fa-solid fa-clipboard-check w-5"></i>
+                        <span>Attendance</span>
+                    </a>
+                    <a href="#" onclick="navigateTo('grading')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-grading">
+                        <i class="fa-solid fa-graduation-cap w-5"></i>
+                        <span>Grading</span>
+                    </a>
+                    <a href="#" onclick="navigateTo('assignments')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-assignments">
+                        <i class="fa-solid fa-file-circle-plus w-5"></i>
+                        <span>Assignments</span>
+                    </a>
+                    <a href="#" onclick="navigateTo('schedule')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-schedule">
+                        <i class="fa-solid fa-calendar w-5"></i>
+                        <span>Schedule</span>
+                    </a>
+                </nav>
+            </div>
+            
+            <div class="p-4 border-t">
+                <div class="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-2xl">
+                    <div class="w-9 h-9 bg-purple-600 text-white rounded-xl flex items-center justify-center font-semibold">{{ display_initial }}</div>
+                    <div class="flex-1">
+                        <p class="font-medium text-sm">{{ display_name }}</p>
+                        <a href="{{ url_for('profile') }}" class="text-xs text-yellow-600 hover:text-yellow-700">View Profile</a>
+                    </div>
+                    <button onclick="logout()" class="text-gray-400 hover:text-red-500">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <header class="bg-white border-b h-16 flex items-center px-8 justify-between">
+                <div class="flex items-center gap-4 flex-1">
+                    <button onclick="toggleSidebar()" class="lg:hidden text-gray-500">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                    <div class="relative flex-1 max-w-md">
+                        <input type="text" id="searchInput" placeholder="Search students..." 
+                               class="w-full bg-gray-100 border border-transparent focus:border-yellow-400 rounded-3xl py-3 px-5 pl-12 text-sm focus:outline-none">
+                        <i class="fa-solid fa-magnifying-glass absolute left-5 top-3.5 text-gray-400"></i>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-6">
+                    <button onclick="showNotifications()" class="relative text-gray-500 hover:text-gray-700">
+                        <i class="fa-solid fa-bell text-xl"></i>
+                        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">7</span>
+                    </button>
+                    <div class="w-8 h-8 bg-purple-100 text-purple-700 rounded-2xl flex items-center justify-center font-bold">{{ display_initial }}</div>
+                </div>
+            </header>
+            
+            <div class="flex-1 overflow-auto p-8" id="content-area">
+                
+                <!-- Dashboard -->
+                <div id="section-dashboard">
+                    <h1 class="text-3xl font-bold mb-8">Good morning, {{ display_name }}</h1>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+                        <div class="bg-white rounded-3xl p-6 card-hover">
+                            <p class="text-gray-500">Current Classes</p>
+                            <p class="text-5xl font-bold mt-2">4</p>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6 card-hover">
+                            <p class="text-gray-500">Students</p>
+                            <p class="text-5xl font-bold mt-2">187</p>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6 card-hover">
+                            <p class="text-gray-500">Assignments Due</p>
+                            <p class="text-5xl font-bold mt-2 text-orange-500">3</p>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6 card-hover">
+                            <p class="text-gray-500">Avg. Class Score</p>
+                            <p class="text-5xl font-bold mt-2">78.4</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-3xl p-6">
+                            <h2 class="font-semibold mb-4">Today's Schedule</h2>
+                            <div id="today-schedule" class="space-y-4"></div>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6">
+                            <h2 class="font-semibold mb-4">Recent Submissions</h2>
+                            <div id="recent-submissions"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- My Classes -->
+                <div id="section-myclasses" class="hidden">
+                    <h1 class="text-3xl font-bold mb-8">My Classes</h1>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="classes-grid"></div>
+                </div>
+                
+                <!-- Attendance -->
+                <div id="section-attendance" class="hidden">
+                    <h1 class="text-3xl font-bold mb-8">Take Attendance</h1>
+                    <div class="bg-white rounded-3xl p-8">
+                        <div class="grid gap-4 md:grid-cols-4 mb-10">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Course</label>
+                                <select id="attendance-course" class="w-full border rounded-2xl px-4 py-3" onchange="loadAttendance()"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Date</label>
+                                <input id="attendance-date" type="date" class="w-full border rounded-2xl px-4 py-3" onchange="loadAttendance()" />
+                            </div>
+                            <div class="flex items-end">
+                                <button type="button" onclick="addAttendanceRow()" class="w-full border border-gray-300 text-gray-700 px-6 py-3 rounded-2xl">Add Student</button>
+                            </div>
+                            <div class="flex items-end">
+                                <button onclick="submitAttendance()" class="w-full bg-black text-white px-10 py-3 rounded-2xl">Save Attendance</button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="bg-gray-50">
+                                        <th class="text-left py-4 px-6">Student ID</th>
+                                        <th class="text-left py-4 px-6">Name</th>
+                                        <th class="text-center py-4 px-6">Present</th>
+                                        <th class="text-center py-4 px-6">Absent</th>
+                                        <th class="text-center py-4 px-6">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendance-list"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Grading -->
+                <div id="section-grading" class="hidden">
+                    <h1 class="text-3xl font-bold mb-8">Grade Management</h1>
+                    <div class="bg-white rounded-3xl p-8">
+                        <div class="grid gap-4 md:grid-cols-4 mb-10">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Course</label>
+                                <select id="grading-course" class="w-full border rounded-2xl px-4 py-3" onchange="loadGrading()"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Assignment</label>
+                                <input id="grading-assignment" type="text" placeholder="e.g. Midterm" class="w-full border rounded-2xl px-4 py-3" value="Midterm Exam" />
+                            </div>
+                            <div class="flex items-end">
+                                <button type="button" onclick="addGradingRow()" class="w-full border border-gray-300 text-gray-700 px-6 py-3 rounded-2xl">Add Student</button>
+                            </div>
+                            <div class="flex items-end">
+                                <button onclick="submitGrades()" class="w-full bg-yellow-400 text-black px-10 py-3 rounded-2xl">Save Grades</button>
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-500 mb-4">University grading scale: A 70-100, B 60-70, C 50-59, D 40-49, F below 40.</div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full" id="grading-table">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="text-left py-5 px-8">Student ID</th>
+                                        <th class="text-left py-5 px-8">Name</th>
+                                        <th class="text-left py-5 px-8">Score</th>
+                                        <th class="text-left py-5 px-8">Grade</th>
+                                        <th class="text-center py-5 px-8">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="grading-tbody" class="divide-y"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assignments -->
+                <div id="section-assignments" class="hidden">
+                    <h1 class="text-3xl font-bold mb-8">Assignment Management</h1>
+                    <div class="bg-white rounded-3xl p-8 mb-8">
+                        <div class="grid gap-4 md:grid-cols-4 mb-8">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Course</label>
+                                <select id="assignment-course" class="w-full border rounded-2xl px-4 py-3" onchange="loadAssignments()"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Title</label>
+                                <input id="assignment-title" type="text" class="w-full border rounded-2xl px-4 py-3" placeholder="Assignment title" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Due Date</label>
+                                <input id="assignment-due" type="date" class="w-full border rounded-2xl px-4 py-3" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Total Marks</label>
+                                <input id="assignment-marks" type="number" min="1" class="w-full border rounded-2xl px-4 py-3" value="100" />
+                            </div>
+                        </div>
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-2">Description</label>
+                            <textarea id="assignment-desc" rows="3" class="w-full border rounded-2xl px-4 py-3" placeholder="Describe the assignment"></textarea>
+                        </div>
+                        <div class="flex flex-col md:flex-row gap-4">
+                            <button type="button" onclick="saveAssignment()" class="bg-black text-white px-10 py-3 rounded-2xl">Save Assignment</button>
+                            <button type="button" onclick="resetAssignmentForm()" class="border border-gray-300 text-gray-700 px-10 py-3 rounded-2xl">New Assignment</button>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-3xl p-8">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="font-semibold text-xl">Assignments</h2>
+                            <span id="assignments-count" class="text-sm text-gray-500"></span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="text-left py-4 px-6">Title</th>
+                                        <th class="text-left py-4 px-6">Course</th>
+                                        <th class="text-left py-4 px-6">Due Date</th>
+                                        <th class="text-left py-4 px-6">Marks</th>
+                                        <th class="text-left py-4 px-6">Description</th>
+                                        <th class="text-center py-4 px-6">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="assignment-list" class="divide-y"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Schedule -->
+                <div id="section-schedule" class="hidden">
+                    <h1 class="text-3xl font-bold mb-8">My Weekly Schedule</h1>
+                    <div class="bg-white rounded-3xl p-8 mb-8">
+                        <div class="grid gap-4 md:grid-cols-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Course</label>
+                                <select id="schedule-course" class="w-full border rounded-2xl px-4 py-3"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Day</label>
+                                <select id="schedule-day" class="w-full border rounded-2xl px-4 py-3">
+                                    <option>Monday</option>
+                                    <option>Tuesday</option>
+                                    <option>Wednesday</option>
+                                    <option>Thursday</option>
+                                    <option>Friday</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Time</label>
+                                <input id="schedule-time" type="text" placeholder="09:00 - 10:30" class="w-full border rounded-2xl px-4 py-3" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Room</label>
+                                <input id="schedule-room" type="text" placeholder="LT-01" class="w-full border rounded-2xl px-4 py-3" />
+                            </div>
+                        </div>
+                        <div class="mt-6">
+                            <button onclick="saveSchedule()" class="bg-yellow-400 text-black px-10 py-3 rounded-2xl">Add Schedule Entry</button>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-3xl p-8" id="faculty-schedule"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast -->
+    <div id="toast" class="hidden fixed bottom-6 right-6 bg-gray-800 text-white px-6 py-4 rounded-3xl flex items-center gap-3 shadow-2xl">
+        <i class="fa-solid fa-check-circle text-green-400"></i>
+        <span id="toast-text"></span>
+    </div>
+    
+    <script>
+        const myClasses = {{ courses | default([]) | tojson }}.map(course => ({
+            code: course.code,
+            name: course.name,
+            students: course.enrolled,
+            time: course.time || "TBA",
+            room: course.room || "TBA"
+        }));
+
+        const apiBase = '/api/staff';
+
+        function navigateTo(section) {
+            document.querySelectorAll('#content-area > div').forEach(div => div.classList.add('hidden'));
+            document.getElementById(`section-${section}`).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('nav-link-active');
+                if (link.id === `nav-${section}`) link.classList.add('nav-link-active');
+            });
+
+            if (section === 'myclasses') renderClasses();
+            if (section === 'attendance') renderAttendance();
+            if (section === 'grading') renderGrading();
+            if (section === 'assignments') renderAssignments();
+            if (section === 'schedule') renderFacultySchedule();
+        }
+
+        function renderClasses() {
+            let html = '';
+            myClasses.forEach(cls => {
+                html += `
+                    <div class="bg-white rounded-3xl p-6 card-hover border">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="font-mono text-yellow-600">${cls.code}</span>
+                                <h3 class="font-bold text-xl mt-1">${cls.name}</h3>
+                            </div>
+                            <span class="bg-emerald-100 text-emerald-700 px-4 py-1 rounded-2xl text-sm">${cls.students} students</span>
+                        </div>
+                        <p class="mt-6 text-sm">${cls.time} - ${cls.room}</p>
+                        <div class="mt-8 flex gap-3">
+                            <button onclick="takeAttendance('${cls.code}')" class="flex-1 py-3 border rounded-2xl text-sm font-medium hover:bg-gray-50">Take Attendance</button>
+                            <button onclick="gradeClass('${cls.code}')" class="flex-1 py-3 bg-yellow-400 hover:bg-yellow-500 rounded-2xl text-sm font-semibold">Grade</button>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('classes-grid').innerHTML = html;
+        }
+
+        function fillCourseSelectors() {
+            const attendanceSelect = document.getElementById('attendance-course');
+            const gradingSelect = document.getElementById('grading-course');
+            const scheduleSelect = document.getElementById('schedule-course');
+            const assignmentSelect = document.getElementById('assignment-course');
+            [attendanceSelect, gradingSelect, scheduleSelect, assignmentSelect].forEach(select => {
+                if (!select) return;
+                const selected = select.value;
+                select.innerHTML = myClasses.map(cls => `<option value="${cls.code}">${cls.code} - ${cls.name}</option>`).join('');
+                if (selected) select.value = selected;
+            });
+        }
+
+        function renderAttendance() {
+            fillCourseSelectors();
+            const dateInput = document.getElementById('attendance-date');
+            if (!dateInput.value) {
+                const today = new Date().toISOString().split('T')[0];
+                dateInput.value = today;
+            }
+            loadAttendance();
+        }
+
+        function addAttendanceRow(student = {id: '', name: '', present: true}) {
+            const tbody = document.getElementById('attendance-list');
+            const row = document.createElement('tr');
+            row.className = 'border-b';
+            row.innerHTML = `
+                <td class="py-4 px-6 font-mono"><input type="text" value="${student.id}" class="w-full border rounded-lg px-3 py-2 student-id" placeholder="STUxxxx" /></td>
+                <td class="py-4 px-6"><input type="text" value="${student.name}" class="w-full border rounded-lg px-3 py-2 student-name" placeholder="Student Name" /></td>
+                <td class="text-center py-4 px-6">
+                    <label class="inline-flex items-center gap-2"><input type="checkbox" ${student.present ? 'checked' : ''} class="attendance-present w-5 h-5" onchange="togglePresentAbsent(this)" /> Present</label>
+                </td>
+                <td class="text-center py-4 px-6">
+                    <label class="inline-flex items-center gap-2"><input type="checkbox" ${student.present ? '' : 'checked'} class="attendance-absent w-5 h-5" onchange="togglePresentAbsent(this)" /> Absent</label>
+                </td>
+                <td class="text-center py-4 px-6"><button type="button" onclick="removeAttendanceRow(this)" class="text-red-500">Remove</button></td>
+            `;
+            tbody.appendChild(row);
+        }
+
+        function removeAttendanceRow(button) {
+            const row = button.closest('tr');
+            if (row) row.remove();
+        }
+
+        function togglePresentAbsent(input) {
+            const row = input.closest('tr');
+            if (!row) return;
+            const present = row.querySelector('.attendance-present');
+            const absent = row.querySelector('.attendance-absent');
+            if (input === present && present.checked) {
+                absent.checked = false;
+            }
+            if (input === absent && absent.checked) {
+                present.checked = false;
+            }
+            if (!present.checked && !absent.checked) {
+                present.checked = true;
+            }
+        }
+
+        async function loadAttendance() {
+            const courseCode = document.getElementById('attendance-course').value;
+            const dateValue = document.getElementById('attendance-date').value;
+            const tbody = document.getElementById('attendance-list');
+            tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-gray-500">Loading...</td></tr>';
+
+            if (!courseCode) {
+                tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-gray-500">Please select a course.</td></tr>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${apiBase}/attendance/${encodeURIComponent(courseCode)}`);
+                const data = await response.json();
+                if (response.ok) {
+                    const records = data.attendance || [];
+                    const students = data.students || [];
+                    const current = records.find(record => record.date === dateValue) || {attendance: []};
+                    tbody.innerHTML = '';
+                    students.forEach(student => {
+                        const match = current.attendance.find(item => item.student_id === student.id);
+                        addAttendanceRow({id: student.id, name: student.name, present: match ? !!match.present : true});
+                    });
+                    if (!students.length) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-gray-500">No students assigned to this course yet. Add a student row.</td></tr>';
+                    }
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-red-500">${data.error || 'Unable to load attendance.'}</td></tr>`;
+                }
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-red-500">Failed to load attendance.</td></tr>`;
+            }
+        }
+
+        async function submitAttendance() {
+            const courseCode = document.getElementById('attendance-course').value;
+            const dateValue = document.getElementById('attendance-date').value;
+            const rows = document.querySelectorAll('#attendance-list tr');
+            const attendance = Array.from(rows).map(row => {
+                const studentId = row.querySelector('.student-id')?.value.trim();
+                const studentName = row.querySelector('.student-name')?.value.trim();
+                const present = row.querySelector('.attendance-present')?.checked;
+                return {student_id: studentId, name: studentName, present: !!present};
+            }).filter(item => item.student_id || item.name);
+
+            try {
+                const response = await fetch(`${apiBase}/attendance/${encodeURIComponent(courseCode)}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({date: dateValue, attendance}),
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    showToast(result.message || 'Attendance saved successfully!');
+                } else {
+                    showToast(result.error || 'Unable to save attendance');
+                }
+            } catch (error) {
+                showToast('Failed to save attendance');
+            }
+        }
+
+        function renderGrading() {
+            fillCourseSelectors();
+            loadGrading();
+        }
+
+        function renderAssignments() {
+            fillCourseSelectors();
+            resetAssignmentForm();
+            loadAssignments();
+        }
+
+        function getGradeLetter(score) {
+            if (score >= 70) return 'A';
+            if (score >= 60) return 'B';
+            if (score >= 50) return 'C';
+            if (score >= 40) return 'D';
+            return 'F';
+        }
+
+        function addGradingRow(student = {id: '', name: '', score: ''}) {
+            const tbody = document.getElementById('grading-tbody');
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50';
+            row.innerHTML = `
+                <td class="py-6 px-8"><input type="text" value="${student.id}" class="w-full border rounded-lg px-3 py-2 grading-id" placeholder="STUxxxx" /></td>
+                <td class="py-6 px-8"><input type="text" value="${student.name}" class="w-full border rounded-lg px-3 py-2 grading-name" placeholder="Student Name" /></td>
+                <td class="py-6 px-8"><input type="number" min="0" max="100" value="${student.score}" class="w-24 border rounded-lg px-3 py-2 grading-score" onchange="updateGradeLetter(this)" /></td>
+                <td class="py-6 px-8"><span class="grading-letter">${student.score !== '' ? getGradeLetter(Number(student.score)) : ''}</span></td>
+                <td class="py-6 px-8 text-center"><button type="button" onclick="removeGradingRow(this)" class="text-red-500">Remove</button></td>
+            `;
+            tbody.appendChild(row);
+        }
+
+        function removeGradingRow(button) {
+            const row = button.closest('tr');
+            if (row) row.remove();
+        }
+
+        function updateGradeLetter(input) {
+            const row = input.closest('tr');
+            if (!row) return;
+            const score = Number(input.value);
+            const letter = Number.isFinite(score) && input.value !== '' ? getGradeLetter(score) : '';
+            row.querySelector('.grading-letter').textContent = letter;
+        }
+
+        async function loadAssignments() {
+            const courseCode = document.getElementById('assignment-course').value;
+            const tbody = document.getElementById('assignment-list');
+            const count = document.getElementById('assignments-count');
+            tbody.innerHTML = '<tr><td colspan="6" class="py-6 text-center text-gray-500">Loading assignments...</td></tr>';
+            count.textContent = '';
+
+            if (!courseCode) {
+                tbody.innerHTML = '<tr><td colspan="6" class="py-6 text-center text-gray-500">Please select a course.</td></tr>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${apiBase}/assignments/${encodeURIComponent(courseCode)}`);
+                const data = await response.json();
+                if (response.ok) {
+                    const assignments = data.assignments || [];
+                    if (!assignments.length) {
+                        tbody.innerHTML = '<tr><td colspan="6" class="py-6 text-center text-gray-500">No assignments found for this course.</td></tr>';
+                        count.textContent = '0 assignments';
+                        return;
+                    }
+                    count.textContent = `${assignments.length} assignment${assignments.length === 1 ? '' : 's'}`;
+                    tbody.innerHTML = assignments.map(item => `
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-4 px-6">${item.title}</td>
+                            <td class="py-4 px-6">${data.course.code}</td>
+                            <td class="py-4 px-6">${item.due_date}</td>
+                            <td class="py-4 px-6">${item.total_marks}</td>
+                            <td class="py-4 px-6">${item.description}</td>
+                            <td class="py-4 px-6 text-center">
+                                <button type="button" onclick="editAssignment('${item.id}')" class="text-blue-600 mr-4">Edit</button>
+                                <button type="button" onclick="deleteAssignment('${data.course.code}','${item.id}')" class="text-red-600">Delete</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-red-500">${data.error || 'Unable to load assignments.'}</td></tr>`;
+                }
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="6" class="py-6 text-center text-red-500">Failed to load assignments.</td></tr>';
+            }
+        }
+
+        function resetAssignmentForm() {
+            document.getElementById('assignment-title').value = '';
+            document.getElementById('assignment-due').value = '';
+            document.getElementById('assignment-marks').value = 100;
+            document.getElementById('assignment-desc').value = '';
+            window.currentAssignmentId = null;
+        }
+
+        async function saveAssignment() {
+            const courseCode = document.getElementById('assignment-course').value;
+            const title = document.getElementById('assignment-title').value.trim();
+            const dueDate = document.getElementById('assignment-due').value;
+            const totalMarks = Number(document.getElementById('assignment-marks').value);
+            const description = document.getElementById('assignment-desc').value.trim();
+            const assignmentId = window.currentAssignmentId;
+
+            if (!courseCode || !title || !dueDate || !totalMarks) {
+                showToast('Please complete all assignment fields.');
+                return;
+            }
+
+            const method = assignmentId ? 'PUT' : 'POST';
+            const url = assignmentId ? `${apiBase}/assignments/${encodeURIComponent(courseCode)}/${encodeURIComponent(assignmentId)}` : `${apiBase}/assignments/${encodeURIComponent(courseCode)}`;
+            try {
+                const response = await fetch(url, {
+                    method,
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({title, due_date: dueDate, total_marks: totalMarks, description}),
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    showToast(result.message || 'Assignment saved successfully!');
+                    resetAssignmentForm();
+                    loadAssignments();
+                } else {
+                    showToast(result.error || 'Unable to save assignment');
+                }
+            } catch (error) {
+                showToast('Failed to save assignment');
+            }
+        }
+
+        async function editAssignment(id) {
+            const courseCode = document.getElementById('assignment-course').value;
+            if (!courseCode) return;
+
+            try {
+                const response = await fetch(`${apiBase}/assignments/${encodeURIComponent(courseCode)}`);
+                const data = await response.json();
+                if (response.ok) {
+                    const item = (data.assignments || []).find(a => a.id === id);
+                    if (!item) {
+                        showToast('Assignment not found');
+                        return;
+                    }
+                    document.getElementById('assignment-title').value = item.title;
+                    document.getElementById('assignment-due').value = item.due_date;
+                    document.getElementById('assignment-marks').value = item.total_marks;
+                    document.getElementById('assignment-desc').value = item.description;
+                    window.currentAssignmentId = item.id;
+                    showToast('Editing assignment details');
+                } else {
+                    showToast(data.error || 'Unable to load assignment for edit');
+                }
+            } catch (error) {
+                showToast('Failed to load assignment');
+            }
+        }
+
+        async function deleteAssignment(courseCode, id) {
+            if (!confirm('Delete this assignment?')) return;
+            try {
+                const response = await fetch(`${apiBase}/assignments/${encodeURIComponent(courseCode)}/${encodeURIComponent(id)}`, {
+                    method: 'DELETE',
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    showToast(result.message || 'Assignment deleted');
+                    loadAssignments();
+                } else {
+                    showToast(result.error || 'Unable to delete assignment');
+                }
+            } catch (error) {
+                showToast('Failed to delete assignment');
+            }
+        }
+
+        async function submitGrades() {
+            const courseCode = document.getElementById('grading-course').value;
+            const rows = document.querySelectorAll('#grading-tbody tr');
+            const grades = Array.from(rows).map(row => {
+                const studentId = row.querySelector('.grading-id')?.value.trim();
+                const studentName = row.querySelector('.grading-name')?.value.trim();
+                const scoreValue = row.querySelector('.grading-score')?.value.trim();
+                const score = scoreValue === '' ? '' : Number(scoreValue);
+                const grade = scoreValue === '' ? '' : getGradeLetter(score);
+                return {student_id: studentId, name: studentName, score, grade};
+            }).filter(item => item.student_id || item.name);
+
+            try {
+                const response = await fetch(`${apiBase}/grades/${encodeURIComponent(courseCode)}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({grades}),
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    showToast(result.message || 'Grades saved successfully!');
+                    loadGrading();
+                } else {
+                    showToast(result.error || 'Unable to save grades');
+                }
+            } catch (error) {
+                showToast('Failed to save grades');
+            }
+        }
+
+        async function saveSchedule() {
+            const courseCode = document.getElementById('schedule-course').value;
+            const day = document.getElementById('schedule-day').value;
+            const time = document.getElementById('schedule-time').value.trim();
+            const room = document.getElementById('schedule-room').value.trim();
+
+            if (!courseCode || !time) {
+                showToast('Please select a course and enter a time.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${apiBase}/schedule`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({course_code: courseCode, day, time, room}),
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    showToast(result.message || 'Schedule saved successfully!');
+                    document.getElementById('schedule-time').value = '';
+                    document.getElementById('schedule-room').value = '';
+                    renderFacultySchedule();
+                } else {
+                    showToast(result.error || 'Unable to save schedule');
+                }
+            } catch (error) {
+                showToast('Failed to save schedule');
+            }
+        }
+
+        async function renderFacultySchedule() {
+            fillCourseSelectors();
+            const container = document.getElementById('faculty-schedule');
+            container.innerHTML = '<div class="py-6 text-center text-gray-500">Loading schedule...</div>';
+
+            try {
+                const response = await fetch(`${apiBase}/schedule`);
+                const data = await response.json();
+                if (response.ok) {
+                    const schedule = data.schedule || [];
+                    if (!schedule.length) {
+                        container.innerHTML = '<div class="py-6 text-center text-gray-500">No schedule entries yet. Add one above.</div>';
+                        return;
+                    }
+
+                    const rows = schedule.map(entry => `
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="py-4 px-6 font-medium">${entry.day}</td>
+                            <td class="py-4 px-6">${entry.time}</td>
+                            <td class="py-4 px-6">${entry.course_code}</td>
+                            <td class="py-4 px-6">${entry.course_name}</td>
+                            <td class="py-4 px-6">${entry.room}</td>
+                        </tr>
+                    `).join('');
+
+                    container.innerHTML = `
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="py-4 px-6 text-left">Day</th>
+                                        <th class="py-4 px-6 text-left">Time</th>
+                                        <th class="py-4 px-6 text-left">Course Code</th>
+                                        <th class="py-4 px-6 text-left">Course Name</th>
+                                        <th class="py-4 px-6 text-left">Room</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${rows}</tbody>
+                            </table>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `<div class="py-6 text-center text-red-500">${data.error || 'Unable to load schedule.'}</div>`;
+                }
+            } catch (error) {
+                container.innerHTML = '<div class="py-6 text-center text-red-500">Failed to load schedule.</div>';
+            }
+        }
+
+        function takeAttendance(code) {
+            navigateTo('attendance');
+            document.getElementById('attendance-course').value = code;
+            loadAttendance();
+            showToast(`Taking attendance for ${code}`);
+        }
+
+        function gradeClass(code) {
+            navigateTo('grading');
+            document.getElementById('grading-course').value = code;
+            loadGrading();
+            showToast(`Opening grading for ${code}`);
+        }
+
+        function showNotifications() {
+            showToast("You have 7 new messages");
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-text').innerHTML = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        function toggleSidebar() {
+            alert("Sidebar works perfectly on mobile!");
+        }
+
+        function renderTodaySchedule() {
+            document.getElementById('today-schedule').innerHTML = `
+                <div class="flex gap-4 items-center bg-yellow-50 p-4 rounded-2xl">
+                    <div class="w-12 h-12 bg-yellow-400 text-white rounded-2xl flex items-center justify-center text-2xl">10:00</div>
+                    <div>
+                        <p class="font-medium">CS301 - Data Structures</p>
+                        <p class="text-sm text-gray-500">Lecture Theatre 12 - 48 students</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderRecentSubmissions() {
+            document.getElementById('recent-submissions').innerHTML = `
+                <div class="space-y-4 text-sm">
+                    <div class="flex justify-between"><span>{{ display_name }} - Assignment 3</span><span class="text-emerald-600">Submitted</span></div>
+                    <div class="flex justify-between"><span>John Mwangi - Midterm</span><span class="text-amber-600">Pending Review</span></div>
+                </div>
+            `;
+        }
+        
+        function initialize() {
+            renderTodaySchedule();
+            renderRecentSubmissions();
+            navigateTo('dashboard');
+        }
+        
+        function logout() {
+            window.location.href = '/logout';
+        }
+        
+        window.onload = initialize;
+    </script>
+</body>
+</html>

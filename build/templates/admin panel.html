@@ -1,0 +1,2072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniAdmin - Student Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        :root {
+            --primary: 234 179 8;
+        }
+        
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+        
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link {
+            transition: all 0.2s ease;
+        }
+        
+        .nav-link:hover {
+            background-color: rgb(234 179 8 / 0.1);
+            transform: translateX(8px);
+        }
+        
+        .nav-link-active {
+            background-color: rgb(234 179 8);
+            color: white;
+            border-radius: 8px;
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+        
+        table {
+            border-collapse: collapse;
+        }
+        
+        .modal {
+            animation: modalPop 0.3s ease;
+        }
+        
+        @keyframes modalPop {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+    {% set display_name = session.get('name', user_name | default('Admin')) %}
+    {% set display_initial = display_name[:1] | upper %}
+    {% set user_email = user.email if user is defined and user else 'user@university.edu' %}
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white border-r border-gray-200 shadow-xl sidebar flex flex-col">
+            <div class="p-6 border-b">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-yellow-400 rounded-2xl flex items-center justify-center text-white font-bold text-2xl">U</div>
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-tight">Adminstrator</h1>
+                        <p class="text-xs text-gray-500">Student Management</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto py-6 px-3">
+                <nav class="space-y-1">
+                    <a href="#" onclick="event.preventDefault(); navigateTo('dashboard')" class="nav-link nav-link-active flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-dashboard">
+                        <i class="fa-solid fa-gauge w-5"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="#" onclick="event.preventDefault(); navigateTo('students')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-students">
+                        <i class="fa-solid fa-user-graduate w-5"></i>
+                        <span>Students</span>
+                    </a>
+                    <a href="#" onclick="event.preventDefault(); navigateTo('staff')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-staff">
+                        <i class="fa-solid fa-chalkboard-user w-5"></i>
+                        <span>Staff</span>
+                    </a>
+                    <a href="#" onclick="event.preventDefault(); navigateTo('courses')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-courses">
+                        <i class="fa-solid fa-book w-5"></i>
+                        <span>Courses</span>
+                    </a>
+                    <a href="#" onclick="event.preventDefault(); navigateTo('departments')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-departments">
+                        <i class="fa-solid fa-building-columns w-5"></i>
+                        <span>Departments</span>
+                    </a>
+                    <a href="#" onclick="event.preventDefault(); navigateTo('attendance')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-attendance">
+                        <i class="fa-solid fa-calendar-check w-5"></i>
+                        <span>Attendance</span>
+                    </a>
+                    <a href="#" onclick="event.preventDefault(); navigateTo('results')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-results">
+                        <i class="fa-solid fa-square-poll-vertical w-5"></i>
+                        <span>Results</span>
+                    </a>
+                    <a href="#" onclick="event.preventDefault(); navigateTo('fees')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-fees">
+                        <i class="fa-solid fa-wallet w-5"></i>
+                        <span>Fees</span>
+                    </a>
+                    <a href="#" onclick="event.preventDefault(); navigateTo('reports')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-reports">
+                        <i class="fa-solid fa-chart-bar w-5"></i>
+                        <span>Reports</span>
+                    </a>
+                </nav>
+            </div>
+            
+            <div class="p-4 border-t">
+                <div class="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-2xl">
+                    <div class="w-9 h-9 bg-zinc-800 text-white rounded-xl flex items-center justify-center font-semibold">{{ display_initial }}</div>
+                    <div class="flex-1">
+                        <p class="font-medium text-sm">{{ display_name }}</p>
+                        <p class="text-xs text-gray-500">{{ user_email }}</p>
+                    </div>
+                    <button onclick="event.preventDefault(); logout()" class="text-gray-400 hover:text-red-500">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Navbar -->
+            <header class="bg-white border-b h-16 flex items-center px-8 justify-between">
+                <div class="flex items-center gap-4 flex-1">
+                    <button onclick="toggleSidebar()" class="lg:hidden text-gray-500">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                    <div class="relative flex-1 max-w-md">
+                        <input id="searchInput" 
+                               onkeyup="handleSearch(event)"
+                               type="text" 
+                               placeholder="Search students or courses..." 
+                               class="w-full bg-gray-100 border border-transparent focus:border-yellow-400 rounded-3xl py-3 px-5 pl-12 text-sm focus:outline-none">
+                        <i class="fa-solid fa-magnifying-glass absolute left-5 top-3.5 text-gray-400"></i>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-6">
+                    <button onclick="showNotifications()" class="relative text-gray-500 hover:text-gray-700">
+                        <i class="fa-solid fa-bell text-xl"></i>
+                        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">3</span>
+                    </button>
+                    
+                    <div class="flex items-center gap-2">
+                        <div class="text-right">
+                            <p class="text-sm font-semibold">{{ display_name }}</p>
+                            <p class="text-xs text-emerald-600">Online</p>
+                        </div>
+                        <div class="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center font-bold">{{ display_initial }}</div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Content Area -->
+            <div class="flex-1 overflow-auto p-8" id="content-area">
+                <!-- Dashboard Section -->
+                <div id="section-dashboard">
+                    <h1 class="text-3xl font-bold mb-8">Dashboard</h1>
+                    
+                    <!-- Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                        <div class="bg-white rounded-3xl p-6 card-hover shadow">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Total Students</p>
+                                    <p id="total-students" class="text-4xl font-bold mt-2">0</p>
+                                </div>
+                                <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-3xl">
+                                    <i class="fa-solid fa-user-graduate"></i>
+                                </div>
+                            </div>
+                            <p class="text-emerald-500 text-sm mt-4 flex items-center gap-1">
+                                <i class="fa-solid fa-arrow-trend-up"></i> Student body overview
+                            </p>
+                        </div>
+
+                        <div class="bg-white rounded-3xl p-6 card-hover shadow">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Total Staff</p>
+                                    <p id="total-staff" class="text-4xl font-bold mt-2">0</p>
+                                </div>
+                                <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-3xl">
+                                    <i class="fa-solid fa-chalkboard-user"></i>
+                                </div>
+                            </div>
+                            <p class="text-emerald-500 text-sm mt-4 flex items-center gap-1">
+                                <i class="fa-solid fa-arrow-trend-up"></i> Teaching and admin staff
+                            </p>
+                        </div>
+
+                        <div class="bg-white rounded-3xl p-6 card-hover shadow">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Active Departments</p>
+                                    <p id="total-departments" class="text-4xl font-bold mt-2">0</p>
+                                </div>
+                                <div class="w-12 h-12 bg-teal-100 text-teal-600 rounded-2xl flex items-center justify-center text-3xl">
+                                    <i class="fa-solid fa-building-columns"></i>
+                                </div>
+                            </div>
+                            <p class="text-emerald-500 text-sm mt-4 flex items-center gap-1">
+                                <i class="fa-solid fa-arrow-trend-up"></i> Departmental coverage
+                            </p>
+                        </div>
+
+                        <div class="bg-white rounded-3xl p-6 card-hover shadow">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Attendance Rate</p>
+                                    <p id="attendance-rate" class="text-4xl font-bold mt-2">0%</p>
+                                </div>
+                                <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center text-3xl">
+                                    <i class="fa-solid fa-calendar-check"></i>
+                                </div>
+                            </div>
+                            <p class="text-emerald-500 text-sm mt-4 flex items-center gap-1">
+                                <i class="fa-solid fa-arrow-trend-up"></i> Attendance performance
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                        <div class="bg-white rounded-3xl p-6 card-hover shadow">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Fee Collected</p>
+                                    <p id="fee-collected" class="text-4xl font-bold mt-2">Tsh 0</p>
+                                </div>
+                                <div class="w-12 h-12 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center text-3xl">
+                                    <i class="fa-solid fa-wallet"></i>
+                                </div>
+                            </div>
+                            <p class="text-emerald-500 text-sm mt-4 flex items-center gap-1">
+                                <i class="fa-solid fa-arrow-trend-up"></i> Cash flow summary
+                            </p>
+                        </div>
+
+                        <div class="bg-white rounded-3xl p-6 card-hover shadow">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Outstanding Balance</p>
+                                    <p id="fee-balance" class="text-4xl font-bold mt-2">Tsh 0</p>
+                                </div>
+                                <div class="w-12 h-12 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center text-3xl">
+                                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                                </div>
+                            </div>
+                            <p class="text-red-500 text-sm mt-4 flex items-center gap-1">
+                                <i class="fa-solid fa-arrow-trend-down"></i> Outstanding due
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Students -->
+                    <div class="bg-white rounded-3xl p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="font-semibold text-lg">Recent Students</h2>
+                            <button onclick="navigateTo('students')" 
+                                    class="text-yellow-600 hover:text-yellow-700 text-sm font-medium flex items-center gap-1">
+                                View All <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto" id="recent-students-table"></div>
+                    </div>
+                </div>
+                
+                <!-- Students Section -->
+                <div id="section-students" class="hidden">
+                    <div class="flex justify-between items-center mb-8">
+                        <h1 class="text-3xl font-bold">Student Management</h1>
+                        <button onclick="showAddStudentModal()" 
+                                class="bg-yellow-400 hover:bg-yellow-500 transition px-6 py-3 rounded-2xl font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i>
+                            Add Student
+                        </button>
+                    </div>
+                    
+                    <div class="bg-white rounded-3xl overflow-hidden">
+                        <div class="p-4 border-b flex gap-4 items-center">
+                            <select id="department-filter" onchange="filterStudents()" class="border rounded-xl px-4 py-2">
+                                <option value="">All Departments</option>
+                                <option value="Computer Science">Computer Science</option>
+                                <option value="Business">Business</option>
+                                <option value="Engineering">Engineering</option>
+                                <option value="Biology">Biology</option>
+                            </select>
+                            <input type="text" id="student-search" placeholder="Search by name or ID..." 
+                                   onkeyup="filterStudents()" class="flex-1 border rounded-xl px-4 py-2">
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full" id="students-table">
+                                <thead>
+                                    <tr class="border-b bg-gray-50">
+                                        <th class="text-left py-4 px-6 font-medium">Student ID</th>
+                                        <th class="text-left py-4 px-6 font-medium">Name</th>
+                                        <th class="text-left py-4 px-6 font-medium">Email</th>
+                                        <th class="text-left py-4 px-6 font-medium">Department</th>
+                                        <th class="text-left py-4 px-6 font-medium">Year</th>
+                                        <th class="text-left py-4 px-6 font-medium">GPA</th>
+                                        <th class="text-left py-4 px-6 font-medium">Status</th>
+                                        <th class="text-center py-4 px-6 font-medium">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="students-tbody" class="text-sm"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Courses Section -->
+                <div id="section-courses" class="hidden">
+                    <div class="flex justify-between items-center mb-8">
+                        <h1 class="text-3xl font-bold">Course Management</h1>
+                        <button onclick="showAddCourseModal()" 
+                                class="bg-yellow-400 hover:bg-yellow-500 transition px-6 py-3 rounded-2xl font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i>
+                            Add Course
+                        </button>
+                    </div>
+                    
+                    <div class="bg-white rounded-3xl p-6" id="courses-content">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+                
+                <!-- Staff Section -->
+                <div id="section-staff" class="hidden">
+                    <div class="flex justify-between items-center mb-8">
+                        <h1 class="text-3xl font-bold">Staff Management</h1>
+                        <button onclick="showAddStaffModal()" 
+                                class="bg-yellow-400 hover:bg-yellow-500 transition px-6 py-3 rounded-2xl font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i>
+                            Add Staff
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-3xl overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="border-b bg-gray-50">
+                                        <th class="text-left py-4 px-4 font-medium">Staff ID</th>
+                                        <th class="text-left py-4 px-4 font-medium">Name</th>
+                                        <th class="text-left py-4 px-4 font-medium">Email</th>
+                                        <th class="text-left py-4 px-4 font-medium">Department</th>
+                                        <th class="text-left py-4 px-4 font-medium">Role</th>
+                                        <th class="text-center py-4 px-4 font-medium">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="staff-tbody" class="text-sm"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Departments Section -->
+                <div id="section-departments" class="hidden">
+                    <div class="flex justify-between items-center mb-8">
+                        <h1 class="text-3xl font-bold">Department Management</h1>
+                        <button onclick="showAddDepartmentModal()"
+                                class="bg-yellow-400 hover:bg-yellow-500 transition px-6 py-3 rounded-2xl font-semibold">
+                            <i class="fa-solid fa-plus"></i>
+                            Add Department
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-3xl overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="border-b bg-gray-50">
+                                        <th class="text-left py-4 px-4 font-medium">Dept ID</th>
+                                        <th class="text-left py-4 px-4 font-medium">Name</th>
+                                        <th class="text-left py-4 px-4 font-medium">Head</th>
+                                        <th class="text-left py-4 px-4 font-medium">Active</th>
+                                        <th class="text-center py-4 px-4 font-medium">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="departments-tbody" class="text-sm"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attendance Section -->
+                <div id="section-attendance" class="hidden">
+                    <div class="flex justify-between items-center mb-8">
+                        <h1 class="text-3xl font-bold">Attendance</h1>
+                    </div>
+                    <div class="bg-white rounded-3xl overflow-hidden">
+                        <div class="p-4 border-b grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Course</label>
+                                <select id="attendance-course" onchange="renderAttendanceTable()" class="w-full border rounded-2xl px-4 py-3">
+                                    <option value="">All Courses</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Date</label>
+                                <input id="attendance-date" type="date" onchange="renderAttendanceTable()" class="w-full border rounded-2xl px-4 py-3">
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="border-b bg-gray-50">
+                                        <th class="text-left py-4 px-4 font-medium">Student ID</th>
+                                        <th class="text-left py-4 px-4 font-medium">Student Name</th>
+                                        <th class="text-left py-4 px-4 font-medium">Course</th>
+                                        <th class="text-center py-4 px-4 font-medium">Present</th>
+                                        <th class="text-center py-4 px-4 font-medium">Absent</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendance-tbody" class="text-sm"></tbody>
+                            </table>
+                        </div>
+                        <div class="p-4 border-t text-right">
+                            <button onclick="saveAttendance()" class="bg-indigo-600 text-white px-6 py-3 rounded-2xl">Save Attendance</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div id="section-results" class="hidden">
+                    <div class="flex justify-between items-center mb-8">
+                        <h1 class="text-3xl font-bold">Results Management</h1>
+                        <button onclick="showResultModal()" 
+                                class="bg-yellow-400 hover:bg-yellow-500 transition px-6 py-3 rounded-2xl font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-upload"></i>
+                            Upload Marks
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-3xl overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="border-b bg-gray-50">
+                                        <th class="text-left py-4 px-4 font-medium">Student</th>
+                                        <th class="text-left py-4 px-4 font-medium">Course</th>
+                                        <th class="text-left py-4 px-4 font-medium">Score</th>
+                                        <th class="text-left py-4 px-4 font-medium">Grade</th>
+                                        <th class="text-left py-4 px-4 font-medium">GPA</th>
+                                        <th class="text-center py-4 px-4 font-medium">Approved</th>
+                                        <th class="text-center py-4 px-4 font-medium">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="results-tbody" class="text-sm"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fees Section -->
+                <div id="section-fees" class="hidden">
+                    <div class="flex justify-between items-center mb-8">
+                        <h1 class="text-3xl font-bold">Fee Management</h1>
+                        <button onclick="showFeeModal()" 
+                                class="bg-yellow-400 hover:bg-yellow-500 transition px-6 py-3 rounded-2xl font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-money-check-dollar"></i>
+                            Add Payment
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-3xl overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="border-b bg-gray-50">
+                                        <th class="text-left py-4 px-4 font-medium">Payment ID</th>
+                                        <th class="text-left py-4 px-4 font-medium">Student</th>
+                                        <th class="text-left py-4 px-4 font-medium">Amount</th>
+                                        <th class="text-left py-4 px-4 font-medium">Date</th>
+                                        <th class="text-left py-4 px-4 font-medium">Status</th>
+                                        <th class="text-left py-4 px-4 font-medium">Balance</th>
+                                        <th class="text-center py-4 px-4 font-medium">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="fees-tbody" class="text-sm"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reports Section -->
+                <div id="section-reports" class="hidden">
+                    <h1 class="text-3xl font-bold mb-8">Reports &amp; Analytics</h1>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-3xl p-8">
+                            <h3 class="font-semibold mb-4">Enrollment by Department</h3>
+                            <div class="space-y-6">
+                                <div class="flex justify-between items-center">
+                                    <span>Computer Science</span>
+                                    <div class="flex-1 mx-6 h-3 bg-gray-100 rounded-full overflow-hidden">
+                                        <div class="h-3 bg-blue-500 w-[65%] rounded-full"></div>
+                                    </div>
+                                    <span class="font-mono">65%</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span>Business</span>
+                                    <div class="flex-1 mx-6 h-3 bg-gray-100 rounded-full overflow-hidden">
+                                        <div class="h-3 bg-amber-500 w-[22%] rounded-full"></div>
+                                    </div>
+                                    <span class="font-mono">22%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-3xl p-8">
+                            <h3 class="font-semibold mb-4">Quick Stats</h3>
+                            <ul class="space-y-4 text-sm">
+                                <li class="flex justify-between"><span>Average GPA</span><span class="font-semibold">3.41</span></li>
+                                <li class="flex justify-between"><span>Graduation Rate</span><span class="font-semibold text-emerald-600">87%</span></li>
+                                <li class="flex justify-between"><span>International Students</span><span class="font-semibold">312</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Student Modal -->
+    <div id="add-student-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div class="bg-white rounded-3xl w-full max-w-lg mx-4 modal">
+            <div class="p-8">
+                <h2 id="student-modal-title" class="text-2xl font-bold mb-6">Add New Student</h2>
+                <input id="edit-student-id" type="hidden">
+                
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Full Name</label>
+                        <input id="new-name" type="text" class="w-full border rounded-2xl px-4 py-3">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Student ID</label>
+                            <input id="new-id" type="text" value="STU00" class="w-full border rounded-2xl px-4 py-3">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Email</label>
+                            <input id="new-email" type="email" class="w-full border rounded-2xl px-4 py-3">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Department</label>
+                            <select id="new-dept" class="w-full border rounded-2xl px-4 py-3">
+                                <option>Computer Science</option>
+                                <option>Business</option>
+                                <option>Engineering</option>
+                                <option>Biology</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Year</label>
+                            <select id="new-year" class="w-full border rounded-2xl px-4 py-3">
+                                <option>1</option>
+                                <option>2</option>
+                                <option>3</option>
+                                <option>4</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t p-4 flex gap-3 justify-end">
+                <button onclick="hideModal()" 
+                        class="px-8 py-3 text-gray-600 hover:bg-gray-100 rounded-2xl">Cancel</button>
+                <button id="student-save-button" onclick="saveStudent()" 
+                        class="bg-yellow-400 hover:bg-yellow-500 px-8 py-3 rounded-2xl font-semibold">Add Student</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Course Modal -->
+    <div id="course-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div class="bg-white rounded-3xl w-full max-w-lg mx-4 modal">
+            <div class="p-8">
+                <h2 id="course-modal-title" class="text-2xl font-bold mb-6">Add Course</h2>
+                <input id="course-edit-index" type="hidden">
+                
+                <div class="space-y-5">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Course Code</label>
+                            <input id="course-code" type="text" placeholder="CS101" class="w-full border rounded-2xl px-4 py-3 uppercase">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Credits</label>
+                            <input id="course-credits" type="number" min="1" max="8" value="3" class="w-full border rounded-2xl px-4 py-3">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Enrolled Students</label>
+                            <input id="course-enrolled" type="number" min="0" max="120" value="0" class="w-full border rounded-2xl px-4 py-3">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Course Name</label>
+                        <input id="course-name" type="text" placeholder="Introduction to Programming" class="w-full border rounded-2xl px-4 py-3">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Instructor</label>
+                            <input id="course-instructor" type="text" placeholder="Dr. John Mwangi" class="w-full border rounded-2xl px-4 py-3">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Schedule</label>
+                            <input id="course-time" type="text" placeholder="Mon 10:00" class="w-full border rounded-2xl px-4 py-3">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Room</label>
+                            <input id="course-room" type="text" placeholder="CS Lab-1" class="w-full border rounded-2xl px-4 py-3">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t p-4 flex gap-3 justify-end">
+                <button onclick="hideCourseModal()" 
+                        class="px-8 py-3 text-gray-600 hover:bg-gray-100 rounded-2xl">Cancel</button>
+                <button onclick="saveCourse()" 
+                        class="bg-yellow-400 hover:bg-yellow-500 px-8 py-3 rounded-2xl font-semibold">Save Course</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Staff Modal -->
+    <div id="staff-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div class="bg-white rounded-3xl w-full max-w-lg mx-4 modal">
+            <div class="p-8">
+                <h2 id="staff-modal-title" class="text-2xl font-bold mb-6">Add New Staff</h2>
+                <input id="edit-staff-id" type="hidden">
+                <div class="space-y-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Staff ID</label>
+                            <input id="staff-id" type="text" class="w-full border rounded-2xl px-4 py-3 uppercase">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Full Name</label>
+                            <input id="staff-name" type="text" class="w-full border rounded-2xl px-4 py-3">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Email</label>
+                            <input id="staff-email" type="email" class="w-full border rounded-2xl px-4 py-3">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Phone</label>
+                            <input id="staff-phone" type="text" class="w-full border rounded-2xl px-4 py-3">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Department</label>
+                            <input id="staff-department" type="text" class="w-full border rounded-2xl px-4 py-3">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Role</label>
+                            <input id="staff-role" type="text" class="w-full border rounded-2xl px-4 py-3" placeholder="Lecturer">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Course Assignments</label>
+                        <input id="staff-courses" type="text" class="w-full border rounded-2xl px-4 py-3" placeholder="CS101, BUS201">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Address</label>
+                        <input id="staff-address" type="text" class="w-full border rounded-2xl px-4 py-3">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Profile Image URL</label>
+                        <input id="staff-profile-image" type="text" class="w-full border rounded-2xl px-4 py-3">
+                    </div>
+                </div>
+            </div>
+            <div class="border-t p-4 flex gap-3 justify-end">
+                <button onclick="hideStaffModal()" class="px-8 py-3 text-gray-600 hover:bg-gray-100 rounded-2xl">Cancel</button>
+                <button id="staff-save-button" onclick="saveStaff()" class="bg-yellow-400 hover:bg-yellow-500 px-8 py-3 rounded-2xl font-semibold">Save Staff</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Department Modal -->
+    <div id="department-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div class="bg-white rounded-3xl w-full max-w-lg mx-4 modal">
+            <div class="p-8">
+                <h2 id="department-modal-title" class="text-2xl font-bold mb-6">Add Department</h2>
+                <input id="edit-department-id" type="hidden">
+                <div class="space-y-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Department ID</label>
+                            <input id="department-id" type="text" class="w-full border rounded-2xl px-4 py-3 uppercase">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Department Name</label>
+                            <input id="department-name" type="text" class="w-full border rounded-2xl px-4 py-3">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">HOD</label>
+                            <input id="department-hod" type="text" class="w-full border rounded-2xl px-4 py-3">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Active</label>
+                            <select id="department-active" class="w-full border rounded-2xl px-4 py-3">
+                                <option value="true">Yes</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Student Count</label>
+                            <input id="department-student-count" type="number" min="0" class="w-full border rounded-2xl px-4 py-3" value="0">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Staff Count</label>
+                            <input id="department-staff-count" type="number" min="0" class="w-full border rounded-2xl px-4 py-3" value="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t p-4 flex gap-3 justify-end">
+                <button onclick="hideDepartmentModal()" class="px-8 py-3 text-gray-600 hover:bg-gray-100 rounded-2xl">Cancel</button>
+                <button id="department-save-button" onclick="saveDepartment()" class="bg-yellow-400 hover:bg-yellow-500 px-8 py-3 rounded-2xl font-semibold">Save Department</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div id="result-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div class="bg-white rounded-3xl w-full max-w-lg mx-4 modal">
+            <div class="p-8">
+                <h2 id="result-modal-title" class="text-2xl font-bold mb-6">Upload Marks</h2>
+                <div class="space-y-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Student ID</label>
+                            <input id="result-student-id" type="text" class="w-full border rounded-2xl px-4 py-3 uppercase">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Student Name</label>
+                            <input id="result-student-name" type="text" class="w-full border rounded-2xl px-4 py-3">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Course Code</label>
+                            <input id="result-course-code" type="text" class="w-full border rounded-2xl px-4 py-3 uppercase">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Course Name</label>
+                            <input id="result-course-name" type="text" class="w-full border rounded-2xl px-4 py-3">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Score</label>
+                            <input id="result-score" type="number" min="0" max="100" class="w-full border rounded-2xl px-4 py-3">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Semester</label>
+                            <input id="result-semester" type="text" class="w-full border rounded-2xl px-4 py-3" placeholder="Semester 2">
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <input id="result-approved" type="checkbox" class="h-4 w-4 text-yellow-500 rounded" />
+                        <label class="text-sm">Approve result immediately</label>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t p-4 flex gap-3 justify-end">
+                <button onclick="hideResultModal()" class="px-8 py-3 text-gray-600 hover:bg-gray-100 rounded-2xl">Cancel</button>
+                <button onclick="saveResult()" class="bg-yellow-400 hover:bg-yellow-500 px-8 py-3 rounded-2xl font-semibold">Save Result</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fee Modal -->
+    <div id="fee-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div class="bg-white rounded-3xl w-full max-w-lg mx-4 modal">
+            <div class="p-8">
+                <h2 class="text-2xl font-bold mb-6">Add Payment</h2>
+                <div class="space-y-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Student ID</label>
+                            <input id="fee-student-id" type="text" class="w-full border rounded-2xl px-4 py-3 uppercase">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Student Name</label>
+                            <input id="fee-student-name" type="text" class="w-full border rounded-2xl px-4 py-3">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Amount</label>
+                            <input id="fee-amount" type="number" min="0" class="w-full border rounded-2xl px-4 py-3">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Date</label>
+                            <input id="fee-date" type="date" class="w-full border rounded-2xl px-4 py-3">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Payment Method</label>
+                            <select id="fee-method" class="w-full border rounded-2xl px-4 py-3">
+                                <option value="Cash">Cash</option>
+                                <option value="Card">Card</option>
+                                <option value="Online">Online</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Status</label>
+                            <select id="fee-status" class="w-full border rounded-2xl px-4 py-3">
+                                <option value="Paid">Paid</option>
+                                <option value="Partial">Partial</option>
+                                <option value="Pending">Pending</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Balance</label>
+                        <input id="fee-balance-input" type="number" min="0" class="w-full border rounded-2xl px-4 py-3">
+                    </div>
+                </div>
+            </div>
+            <div class="border-t p-4 flex gap-3 justify-end">
+                <button onclick="hideFeeModal()" class="px-8 py-3 text-gray-600 hover:bg-gray-100 rounded-2xl">Cancel</button>
+                <button onclick="saveFee()" class="bg-yellow-400 hover:bg-yellow-500 px-8 py-3 rounded-2xl font-semibold">Save Payment</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="hidden fixed bottom-6 right-6 bg-gray-800 text-white px-6 py-4 rounded-3xl flex items-center gap-3 shadow-2xl">
+        <i class="fa-solid fa-check-circle text-green-400"></i>
+        <span id="toast-text" class="font-medium"></span>
+    </div>
+    
+    <script>
+        // Sample Data loaded from backend
+        let         // ...existing code...
+        <script>
+          (function(){
+            let students = []; // now scoped to this block, won't clash
+            // ... code that uses students ...
+          })();
+        </script>
+        // ...existing code... = {{ students | default([]) | tojson }};
+        let staffMembers = {{ staff | default([]) | tojson }};
+        let departments = {{ departments | default([]) | tojson }};
+        let feePayments = {{ fees | default([]) | tojson }};
+        let resultRecords = {{ results | default([]) | tojson }};
+        let attendanceRecords = {{ attendance | default({}) | tojson }};
+        let courses = {{ courses | default([]) | tojson }};
+
+        function escapeHTML(value) {
+            return String(value)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+        
+        // Navigation
+        function navigateTo(section) {
+            // Hide all sections
+            document.querySelectorAll('#content-area > div').forEach(div => {
+                div.classList.add('hidden');
+            });
+            
+            // Show target
+            const target = document.getElementById(`section-${section}`);
+            if (target) target.classList.remove('hidden');
+            
+            // Update active nav
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('nav-link-active');
+                if (link.id === `nav-${section}`) {
+                    link.classList.add('nav-link-active');
+                }
+            });
+            
+            // Load content if needed
+            if (section === 'students') renderStudentsTable();
+            if (section === 'staff') renderStaffTable();
+            if (section === 'courses') renderCourses();
+            if (section === 'departments') renderDepartmentsTable();
+            if (section === 'attendance') renderAttendanceTable();
+            if (section === 'results') renderResultsTable();
+            if (section === 'fees') renderFeesTable();
+            if (section === 'reports') renderReports();
+        }
+        
+        // Render Students Table
+        function renderStudentsTable(filteredStudents = null) {
+            const tbody = document.getElementById('students-tbody');
+            tbody.innerHTML = '';
+            
+            const data = filteredStudents || students;
+            
+            data.forEach(student => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-yellow-50 transition';
+                row.innerHTML = `
+                    <td class="py-4 px-6 font-mono text-sm">${student.id}</td>
+                    <td class="py-4 px-6 font-medium">${student.name}</td>
+                    <td class="py-4 px-6 text-gray-500">${student.email}</td>
+                    <td class="py-4 px-6">${student.department || ''}</td>
+                    <td class="py-4 px-6">${student.year}</td>
+                    <td class="py-4 px-6 font-semibold">${student.gpa || '-'}</td>
+                    <td class="py-4 px-6">
+                        <span class="inline-flex items-center gap-1.5 ${student.status === 'Active' ? 'text-emerald-600' : 'text-amber-600'}">
+                            <span class="status-dot ${student.status === 'Active' ? 'bg-emerald-500' : 'bg-amber-500'}"></span>
+                            ${student.status}
+                        </span>
+                    </td>
+                    <td class="py-4 px-6 text-center">
+                        <button onclick="editStudent('${student.id}')" class="text-blue-500 hover:text-blue-700 mr-3">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button onclick="deleteStudent('${student.id}')" class="text-red-500 hover:text-red-700">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function renderRecentStudentsTable() {
+            const container = document.getElementById('recent-students-table');
+            const recent = students.slice(0, 4);
+
+            container.innerHTML = `
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b bg-gray-50">
+                            <th class="text-left py-3 px-4 font-medium">Student ID</th>
+                            <th class="text-left py-3 px-4 font-medium">Name</th>
+                            <th class="text-left py-3 px-4 font-medium">Department</th>
+                            <th class="text-left py-3 px-4 font-medium">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${recent.map(student => `
+                            <tr class="border-b last:border-b-0 hover:bg-yellow-50">
+                                <td class="py-3 px-4 font-mono">${student.id}</td>
+                                <td class="py-3 px-4 font-medium">${student.name}</td>
+                                <td class="py-3 px-4">${student.department || ''}</td>
+                                <td class="py-3 px-4">${student.status}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        function filterStudents() {
+            const searchTerm = document.getElementById('student-search').value.toLowerCase();
+            const deptFilter = document.getElementById('department-filter').value;
+            
+            const filtered = students.filter(s => {
+                const matchesSearch = s.name.toLowerCase().includes(searchTerm) || 
+                                     s.id.toLowerCase().includes(searchTerm);
+                const matchesDept = !deptFilter || s.department === deptFilter;
+                return matchesSearch && matchesDept;
+            });
+            
+            renderStudentsTable(filtered);
+        }
+        
+        function showAddStudentModal() {
+            document.getElementById('edit-student-id').value = '';
+            document.getElementById('new-name').value = '';
+            document.getElementById('new-id').value = '';
+            document.getElementById('new-gender').value = 'Female';
+            document.getElementById('new-dob').value = '';
+            document.getElementById('new-email').value = '';
+            document.getElementById('new-phone').value = '';
+            document.getElementById('new-dept').value = 'Computer Science';
+            document.getElementById('new-course').value = '';
+            document.getElementById('new-year').value = '1';
+            document.getElementById('new-guardian').value = '';
+            document.getElementById('new-address').value = '';
+            document.getElementById('new-profile-image').value = '';
+            document.getElementById('student-modal-title').textContent = 'Add New Student';
+            document.getElementById('student-save-button').textContent = 'Add Student';
+            document.getElementById('add-student-modal').classList.remove('hidden');
+        }
+
+        function hideModal() {
+            document.getElementById('add-student-modal').classList.add('hidden');
+        }
+
+        async function saveStudent() {
+            const studentId = document.getElementById('edit-student-id').value.trim();
+            const id = document.getElementById('new-id').value.trim().toUpperCase();
+            const payload = {
+                id,
+                name: document.getElementById('new-name').value.trim(),
+                gender: document.getElementById('new-gender').value,
+                dob: document.getElementById('new-dob').value,
+                email: document.getElementById('new-email').value.trim(),
+                phone: document.getElementById('new-phone').value.trim(),
+                department: document.getElementById('new-dept').value,
+                course: document.getElementById('new-course').value.trim(),
+                year: document.getElementById('new-year').value,
+                address: document.getElementById('new-address').value.trim(),
+                guardian: document.getElementById('new-guardian').value.trim(),
+                profile_image: document.getElementById('new-profile-image').value.trim(),
+                status: 'Active',
+            };
+
+            if (!payload.id || !payload.name || !payload.email) {
+                alert('Student ID, name, and email are required.');
+                return;
+            }
+
+            const method = studentId ? 'PUT' : 'POST';
+            const url = studentId ? `/api/admin/students/${encodeURIComponent(studentId)}` : '/api/admin/students';
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                alert(result.error || 'Unable to save student.');
+                return;
+            }
+            if (studentId) {
+                const index = students.findIndex(s => s.id === studentId);
+                if (index !== -1) students[index] = result;
+                showToast('Student updated successfully!');
+            } else {
+                students.unshift(result);
+                showToast('Student added successfully!');
+            }
+            hideModal();
+            renderStudentsTable();
+            renderRecentStudentsTable();
+            updateDashboardCounts();
+        }
+
+        function editStudent(id) {
+            const student = students.find(s => s.id === id);
+            if (!student) return;
+            document.getElementById('edit-student-id').value = student.id;
+            document.getElementById('new-id').value = student.id;
+            document.getElementById('new-name').value = student.name;
+            document.getElementById('new-gender').value = student.gender || 'Female';
+            document.getElementById('new-dob').value = student.dob || '';
+            document.getElementById('new-email').value = student.email;
+            document.getElementById('new-phone').value = student.phone || '';
+            document.getElementById('new-dept').value = student.department || student.dept || 'Computer Science';
+            document.getElementById('new-course').value = student.course || '';
+            document.getElementById('new-year').value = student.year || '1';
+            document.getElementById('new-guardian').value = student.guardian || '';
+            document.getElementById('new-address').value = student.address || '';
+            document.getElementById('new-profile-image').value = student.profile_image || '';
+            document.getElementById('student-modal-title').textContent = 'Edit Student';
+            document.getElementById('student-save-button').textContent = 'Save Changes';
+            document.getElementById('add-student-modal').classList.remove('hidden');
+        }
+
+        async function deleteStudent(id) {
+            if (!confirm('Delete this student?')) return;
+            const response = await fetch(`/api/admin/students/${encodeURIComponent(id)}`, { method: 'DELETE' });
+            const result = await response.json();
+            if (!response.ok) {
+                alert(result.error || 'Unable to delete student.');
+                return;
+            }
+            students = students.filter(s => s.id !== id);
+            renderStudentsTable();
+            renderRecentStudentsTable();
+            updateDashboardCounts();
+            showToast('Student deleted.');
+        }
+
+        // Courses
+        function renderCourses() {
+            let html = `
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[900px]">
+                        <thead>
+                            <tr class="border-b bg-gray-50">
+                                <th class="text-left py-4 px-6 font-medium">Code</th>
+                                <th class="text-left py-4 px-6 font-medium">Course Name</th>
+                                <th class="text-left py-4 px-6 font-medium">Credits</th>
+                                <th class="text-left py-4 px-6 font-medium">Instructor</th>
+                                <th class="text-left py-4 px-6 font-medium">Schedule</th>
+                                <th class="text-left py-4 px-6 font-medium">Room</th>
+                                <th class="text-left py-4 px-6 font-medium">Enrolled</th>
+                                <th class="text-center py-4 px-6 font-medium">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+            `;
+            
+            courses.forEach((course, index) => {
+                html += `
+                    <tr class="border-b hover:bg-yellow-50 transition">
+                        <td class="py-4 px-6 font-mono text-yellow-700">${escapeHTML(course.code)}</td>
+                        <td class="py-4 px-6 font-medium">${escapeHTML(course.name)}</td>
+                        <td class="py-4 px-6">${escapeHTML(course.credits)}</td>
+                        <td class="py-4 px-6">${escapeHTML(course.instructor || 'TBA')}</td>
+                        <td class="py-4 px-6">${escapeHTML(course.time || 'TBA')}</td>
+                        <td class="py-4 px-6">${escapeHTML(course.room || 'TBA')}</td>
+                        <td class="py-4 px-6">${escapeHTML(course.enrolled)} / 120</td>
+                        <td class="py-4 px-6 text-center">
+                            <button onclick="editCourse($                            // ...existing code...
+                            <script>
+                              (function(){
+                                // Safe global initialization to avoid redeclare errors
+                                window.students = window.students || [];
+                                window.courses = window.courses || [];
+                                window.assignments = window.assignments || [];
+                            
+                                if (window._adminPanelInitialized) return;
+                                window._adminPanelInitialized = true;
+                            
+                                // Simple navigation helper (expects sections with id="section-<name>")
+                                function navigateTo(name){
+                                  document.querySelectorAll('[id^="section-"]').forEach(s=>s.classList.add('hidden'));
+                                  const el = document.getElementById('section-'+name);
+                                  if (el) el.classList.remove('hidden');
+                                }
+                                window.navigateTo = navigateTo;
+                            
+                                // Logout helper
+                                window.logout = function(){
+                                  // adjust route as needed
+                                  window.location.href = '/logout';
+                                };
+                            
+                                // Example: render students into a tbody with id="students-tbody"
+                                window.renderStudents = function(){
+                                  const tbody = document.getElementById('students-tbody');
+                                  if (!tbody) return;
+                                  tbody.innerHTML = '';
+                                  window.students.forEach(s=>{
+                                    const tr = document.createElement('tr');
+                                    tr.innerHTML = `<td>${s.id||''}</td><td>${s.name||''}</td><td>${s.department||''}</td>`;
+                                    tbody.appendChild(tr);
+                                  });
+                                };
+                            
+                                // Init hooks
+                                document.addEventListener('DOMContentLoaded', function(){
+                                  // wire sidebar links that use data-section attributes
+                                  document.querySelectorAll('[data-section]').forEach(a=>{
+                                    a.addEventListener('click', function(e){
+                                      e.preventDefault();
+                                      navigateTo(a.getAttribute('data-section'));
+                                    });
+                                  });
+                                  renderStudents();
+                                });
+                              })();
+                            </script>
+                            // ...existing code...index})" class="text-blue-500 hover:text-blue-700 mr-3" title="Edit course">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="deleteCourse($                            // ...existing code...
+                            <script>
+                            (function(){
+                              // avoid redeclare errors
+                              window.students = window.students || [];
+                              window.courses = window.courses || [];
+                              if (window._adminPanelInit) return;
+                              window._adminPanelInit = true;
+                            
+                              function navigateTo(name){
+                                document.querySelectorAll('[id^="                                // ...existing code...
+                                <tr class="border-b hover:bg-yellow-50 transition">
+                                  <td class="py-4 px-6 text-center">
+                                    <button onclick="deleteCourse(${index})" class="px-3 py-1 bg-red-500 text-white rounded">Delete</button>
+                                  </td>
+                                </tr>
+                                <!-- ...existing table HTML... -->
+                                </table>
+                                
+                                <script>
+                                  // ...existing code...
+                                  (function(){
+                                    // avoid redeclare errors
+                                    window.students = window.students || [];
+                                    window.courses = window.courses || [];
+                                    if (window._adminPanelInit) return;
+                                    window._adminPanelInit = true;
+                                
+                                    function navigateTo(name){
+                                      document.querySelectorAll('[id^="section-"]').forEach(s=>s.classList.add('hidden'));
+                                      const el = document.getElementById('section-'+name);
+                                      if (el) el.classList.remove('hidden');
+                                    }
+                                    window.navigateTo = navigateTo;
+                                
+                                    window.logout = function(){ window.location.href = '/logout'; };
+                                
+                                    window.renderStudents = function(){
+                                      const tbody = document.getElementById('students-tbody');
+                                      if (!tbody) return;
+                                      tbody.innerHTML = '';
+                                      window.students.forEach(s=>{
+                                        const tr = document.createElement('tr');
+                                        tr.innerHTML = `<td>${s.id||''}</td><td>${s.name||''}</td><td>${s.department||''}</td>`;
+                                        tbody.appendChild(tr);
+                                      });
+                                    };
+                                
+                                    document.addEventListener('DOMContentLoaded', function(){
+                                      document.querySelectorAll('[data-section]').forEach(a=>{
+                                        a.addEventListener('click', function(e){
+                                          e.preventDefault();
+                                          navigateTo(a.getAttribute('data-section'));
+                                        });
+                                      });
+                                      renderStudents();
+                                    });
+                                  })();
+                                </script>
+                                // ...existing code...section-"]').forEach(s=>s.classList.add('hidden'));
+                                const el = document.getElementById('section-'+name);
+                                if (el) el.classList.remove('hidden');
+                              }
+                              window.navigateTo = navigateTo;
+                            
+                              window.logout = function(){ window.location.href = '/logout'; };
+                            
+                              window.renderStudents = function(){
+                                const tbody = document.getElementById('students-tbody');
+                                if (!tbody) return;
+                                tbody.innerHTML = '';
+                                window.students.forEach(s=>{
+                                  const tr = document.createElement('tr');
+                                  tr.innerHTML = `<td>${s.id||''}</td><td>${s.name||''}</td><td>${s.department||''}</td>`;
+                                  tbody.appendChild(tr);
+                                });
+                              };
+                            
+                              document.addEventListener('DOMContentLoaded', function(){
+                                document.querySelectorAll('[data-section]').forEach(a=>{
+                                  a.addEventListener('click', function(e){
+                                    e.preventDefault();
+                                    navigateTo(a.getAttribute('data-section'));
+                                  });
+                                });
+                                renderStudents();
+                              });
+                            })();
+                            </script>
+                            // ...existing code...index})" class="text-red-500 hover:text-red-700" title="Delete course">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            if (!courses.length) {
+                html += `
+                    <tr>
+                        <td colspan="8" class="py-10 px-6 text-center text-gray-500">
+                            No courses yet. Click Add Course to create one.
+                        </td>
+                    </tr>
+                `;
+            }
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            document.getElementById('courses-content').innerHTML = html;
+            updateDashboardCounts();
+        }
+        
+        function showAddCourseModal() {
+            document.getElementById('course-modal-title').textContent = 'Add Course';
+            document.getElementById('course-edit-index').value = '';
+            document.getElementById('course-code').value = '';
+            document.getElementById('course-name').value = '';
+            document.getElementById('course-credits').value = '3';
+            document.getElementById('course-enrolled').value = '0';
+            document.getElementById('course-instructor').value = '';
+            document.getElementById('course-time').value = '';
+            document.getElementById('course-room').value = '';
+            document.getElementById('course-modal').classList.remove('hidden');
+        }
+
+        function hideCourseModal() {
+            document.getElementById('course-modal').classList.add('hidden');
+        }
+
+        async function saveCourse() {
+            const editIndex = document.getElementById('course-edit-index').value;
+            const code = document.getElementById('course-code').value.trim().toUpperCase();
+            const name = document.getElementById('course-name').value.trim();
+            const credits = Number(document.getElementById('course-credits').value);
+            const enrolled = Number(document.getElementById('course-enrolled').value);
+            const instructor = document.getElementById('course-instructor').value.trim();
+            const time = document.getElementById('course-time').value.trim();
+            const room = document.getElementById('course-room').value.trim();
+            const originalCode = editIndex === '' ? '' : courses[Number(editIndex)].code;
+
+            if (!code || !name) {
+                alert('Course code and course name are required.');
+                return;
+            }
+
+            if (!Number.isInteger(credits) || credits < 1 || credits > 8) {
+                alert('Credits must be a number from 1 to 8.');
+                return;
+            }
+
+            if (!Number.isInteger(enrolled) || enrolled < 0 || enrolled > 120) {
+                alert('Enrolled students must be a number from 0 to 120.');
+                return;
+            }
+
+            const duplicate = courses.some((course, index) => course.code === code && String(index) !== editIndex);
+            if (duplicate) {
+                alert('A course with this code already exists.');
+                return;
+            }
+
+            const courseData = { code, name, credits, enrolled, instructor, time, room };
+            const url = editIndex === '' ? '/api/courses' : `/api/courses/${encodeURIComponent(originalCode)}`;
+            const method = editIndex === '' ? 'POST' : 'PUT';
+
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(courseData)
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                alert(result.error || 'Could not save course.');
+                return;
+            }
+
+            await loadCourses();
+            hideCourseModal();
+            showToast(editIndex === '' ? 'Course added successfully!' : 'Course updated successfully!');
+        }
+
+        function editCourse(index) {
+            const course = courses[index];
+            if (!course) return;
+
+            document.getElementById('course-modal-title').textContent = 'Edit Course';
+            document.getElementById('course-edit-index').value = index;
+            document.getElementById('course-code').value = course.code;
+            document.getElementById('course-name').value = course.name;
+            document.getElementById('course-credits').value = course.credits;
+            document.getElementById('course-enrolled').value = course.enrolled;
+            document.getElementById('course-instructor').value = course.instructor || '';
+            document.getElementById('course-time').value = course.time || '';
+            document.getElementById('course-room').value = course.room || '';
+            document.getElementById('course-modal').classList.remove('hidden');
+        }
+
+        async function deleteCourse(index) {
+            const course = courses[index];
+            if (!course) return;
+
+            if (confirm(`Delete ${course.code} - ${course.name}?`)) {
+                const response = await fetch(`/api/courses/${encodeURIComponent(course.code)}`, { method: 'DELETE' });
+                if (!response.ok) {
+                    const result = await response.json();
+                    alert(result.error || 'Could not delete course.');
+                    return;
+                }
+
+                await loadCourses();
+                showToast('Course deleted.');
+            }
+        }
+
+        async function loadCourses() {
+            const response = await fetch('/api/courses');
+            courses = await response.json();
+            renderCourses();
+            populateCourseDropdowns();
+        }
+
+        async function loadAdminData() {
+            const endpoints = [
+                '/api/admin/students',
+                '/api/admin/staff',
+                '/api/admin/departments',
+                '/api/admin/fees',
+                '/api/admin/results',
+                '/api/admin/attendance',
+            ];
+
+            const results = await Promise.all(endpoints.map(url => fetch(url).then(res => res.ok ? res.json() : null)));
+            if (results[0]) { students = results[0]; }
+            if (results[1]) { staffMembers = results[1]; }
+            if (results[2]) { departments = results[2]; }
+            if (results[3]) {
+                feePayments = results[3].payments || feePayments;
+            }
+            if (results[4]) { resultRecords = results[4].results || resultRecords; }
+            if (results[5]) { attendanceRecords = results[5].records || attendanceRecords; }
+
+            populateCourseDropdowns();
+            updateDashboardCounts();
+        }
+
+        function populateCourseDropdowns() {
+            const attendanceSelect = document.getElementById('attendance-course');
+            if (!attendanceSelect) return;
+            attendanceSelect.innerHTML = courses.map(course => `<option value="${escapeHTML(course.code)}">${escapeHTML(course.code)} - ${escapeHTML(course.name)}</option>`).join('');
+        }
+
+        function renderStaffTable() {
+            const tbody = document.getElementById('staff-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (!staffMembers.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="py-6 text-center text-gray-500">No staff records available.</td></tr>';
+                return;
+            }
+            staffMembers.forEach(staff => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-yellow-50 transition';
+                row.innerHTML = `
+                    <td class="py-4 px-4 font-mono text-sm">${escapeHTML(staff.id)}</td>
+                    <td class="py-4 px-4 font-medium text-sm">${escapeHTML(staff.name)}</td>
+                    <td class="py-4 px-4 text-gray-500 text-sm">${escapeHTML(staff.email)}</td>
+                    <td class="py-4 px-4 text-sm">${escapeHTML(staff.department)}</td>
+                    <td class="py-4 px-4 text-sm">${escapeHTML(staff.role)}</td>
+                    <td class="py-4 px-4 text-center text-sm">
+                        <button onclick="editStaff('${escapeHTML(staff.id)}')" class="text-blue-500 hover:text-blue-700 mr-3"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteStaff('${escapeHTML(staff.id)}')" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function renderDepartmentsTable() {
+            const tbody = document.getElementById('departments-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (!departments.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="py-6 text-center text-gray-500">No departments found.</td></tr>';
+                return;
+            }
+            departments.forEach(department => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-yellow-50 transition';
+                row.innerHTML = `
+                    <td class="py-4 px-4 font-mono text-sm">${escapeHTML(department.id)}</td>
+                    <td class="py-4 px-4 text-sm">${escapeHTML(department.name)}</td>
+                    <td class="py-4 px-4 text-sm">${escapeHTML(department.hod)}</td>
+                    <td class="py-4 px-4 text-sm">${escapeHTML(department.student_count.toString())}</td>
+                    <td class="py-4 px-4 text-sm">${escapeHTML(department.staff_count.toString())}</td>
+                    <td class="py-4 px-4 text-center text-sm">
+                        <button onclick="editDepartment('${escapeHTML(department.id)}')" class="text-blue-500 hover:text-blue-700 mr-3"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteDepartment('${escapeHTML(department.id)}')" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function renderAttendanceTable() {
+            const courseCode = document.getElementById('attendance-course').value;
+            const dateValue = document.getElementById('attendance-date').value || new Date().toISOString().slice(0, 10);
+            document.getElementById('attendance-date').value = dateValue;
+
+            const tbody = document.getElementById('attendance-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const courseStudents = students.filter(student => student.course === courseCode || !student.course).sort((a,b)=> a.name.localeCompare(b.name));
+            const records = attendanceRecords[courseCode] || [];
+            const record = records.find(item => item.date === dateValue) || {attendance: []};
+
+            if (!courseStudents.length) {
+                tbody.innerHTML = '<tr><td colspan="4" class="py-6 text-center text-gray-500">No students enrolled in this course.</td></tr>';
+                return;
+            }
+
+            courseStudents.forEach(student => {
+                const existing = record.attendance.find(item => item.student_id === student.id) || {};
+                const status = existing.status || 'Present';
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-yellow-50 transition';
+                row.innerHTML = `
+                    <td class="py-4 px-4 font-mono text-sm">${escapeHTML(student.id)}</td>
+                    <td class="py-4 px-4 text-sm">${escapeHTML(student.name)}</td>
+                    <td class="py-4 px-4 text-sm">
+                        <select class="attendance-status border rounded-full px-3 py-2 text-sm">
+                            <option value="Present" ${status === 'Present' ? 'selected' : ''}>Present</option>
+                            <option value="Absent" ${status === 'Absent' ? 'selected' : ''}>Absent</option>
+                            <option value="Late" ${status === 'Late' ? 'selected' : ''}>Late</option>
+                        </select>
+                    </td>
+                    <td class="py-4 px-4 text-center text-sm">
+                        <button onclick="toggleAttendanceStatus(this)" class="text-yellow-600 hover:text-yellow-800"><i class="fa-solid fa-sync"></i></button>
+                    </td>
+                `;
+                row.dataset.studentId = student.id;
+                tbody.appendChild(row);
+            });
+        }
+
+        function toggleAttendanceStatus(button) {
+            const select = button.closest('tr').querySelector('.attendance-status');
+            if (!select) return;
+            const nextIndex = (['Present','Absent','Late'].indexOf(select.value) + 1) % 3;
+            select.value = ['Present','Absent','Late'][nextIndex];
+        }
+
+        async function saveAttendance() {
+            const courseCode = document.getElementById('attendance-course').value;
+            const dateValue = document.getElementById('attendance-date').value;
+            const rows = Array.from(document.querySelectorAll('#attendance-tbody tr'));
+            const attendance = rows.map(row => ({
+                student_id: row.dataset.studentId,
+                status: row.querySelector('.attendance-status').value,
+            }));
+
+            const response = await fetch('/api/admin/attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ course_code: courseCode, date: dateValue, attendance }),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                alert(result.error || 'Unable to save attendance.');
+                return;
+            }
+            attendanceRecords[courseCode] = attendanceRecords[courseCode] || [];
+            const existing = attendanceRecords[courseCode].find(item => item.date === dateValue);
+            if (existing) {
+                existing.attendance = attendance;
+            } else {
+                attendanceRecords[courseCode].push({ date: dateValue, attendance });
+            }
+            showToast(result.message || 'Attendance saved successfully');
+            updateDashboardCounts();
+        }
+
+        function renderResultsTable() {
+            const tbody = document.getElementById('results-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (!resultRecords.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-gray-500">No results uploaded yet.</td></tr>';
+                return;
+            }
+            resultRecords.forEach(result => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-yellow-50 transition';
+                row.innerHTML = `
+                    <td class="py-4 px-4 text-sm">${escapeHTML(result.student_name)}</td>
+                    <td class="py-4 px-4 text-sm">${escapeHTML(result.course_code)} - ${escapeHTML(result.course_name)}</td>
+                    <td class="py-4 px-4 text-sm">${escapeHTML(result.score.toString())}</td>
+                    <td class="py-4 px-4 text-sm">${escapeHTML(result.grade)}</td>
+                    <td class="py-4 px-4 text-sm">${escapeHTML(result.gpa.toString())}</td>
+                    <td class="py-4 px-4 text-center text-sm">${result.approved ? 'Yes' : 'No'}</td>
+                    <td class="py-4 px-4 text-center text-sm">
+                        <button onclick="approveResult('${escapeHTML(result.student_id)}','${escapeHTML(result.course_code)}')" class="text-green-500 hover:text-green-700 mr-3"><i class="fa-solid fa-check"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function approveResult(studentId, courseCode) {
+            const response = await fetch(`/api/admin/results/${encodeURIComponent(studentId)}/${encodeURIComponent(courseCode)}/approve`, { method: 'POST' });
+            const result = await response.json();
+            if (!response.ok) {
+                alert(result.error || 'Unable to approve result.');
+                return;
+            }
+            const record = resultRecords.find(item => item.student_id === studentId && item.course_code === courseCode);
+            if (record) record.approved = true;
+            renderResultsTable();
+            showToast('Result approved');
+        }
+
+        function renderFeesTable() {
+            const tbody = document.getElementById('fees-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (!feePayments.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-gray-500">No fee payments recorded.</td></tr>';
+                return;
+            }
+            feePayments.forEach(payment => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-yellow-50 transition';
+                row.innerHTML = `
+                    <td class="py-4 px-4 text-sm">${escapeHTML(payment.id)}</td>
+                    <td class="py-4 px-4 text-sm">${escapeHTML(payment.student_name)}</td>
+                    <td class="py-4 px-4 text-sm">Tsh ${payment.amount.toLocaleString()}</td>
+                    <td class="py-4 px-4 text-sm">${escapeHTML(payment.date)}</td>
+                    <td class="py-4 px-4 text-sm">${escapeHTML(payment.status)}</td>
+                    <td class="py-4 px-4 text-sm">Tsh ${payment.balance.toLocaleString()}</td>
+                    <td class="py-4 px-4 text-center text-sm">
+                        <button onclick="deleteFee('${escapeHTML(payment.id)}')" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            updateDashboardCounts();
+        }
+
+        async function deleteFee(paymentId) {
+            if (!confirm('Delete this payment?')) return;
+            const response = await fetch(`/api/admin/fees/${encodeURIComponent(paymentId)}`, { method: 'DELETE' });
+            const result = await response.json();
+            if (!response.ok) {
+                alert(result.error || 'Could not delete payment.');
+                return;
+            }
+            feePayments = feePayments.filter(item => item.id !== paymentId);
+            renderFeesTable();
+            showToast('Payment deleted');
+        }
+
+        function showAddStaffModal() {
+            document.getElementById('edit-staff-id').value = '';
+            document.getElementById('staff-id').value = '';
+            document.getElementById('staff-name').value = '';
+            document.getElementById('staff-email').value = '';
+            document.getElementById('staff-phone').value = '';
+            document.getElementById('staff-department').value = '';
+            document.getElementById('staff-role').value = 'Lecturer';
+            document.getElementById('staff-courses').value = '';
+            document.getElementById('staff-address').value = '';
+            document.getElementById('staff-profile-image').value = '';
+            document.getElementById('staff-modal-title').textContent = 'Add New Staff';
+            document.getElementById('staff-save-button').textContent = 'Save Staff';
+            document.getElementById('staff-modal').classList.remove('hidden');
+        }
+
+        function hideStaffModal() {
+            document.getElementById('staff-modal').classList.add('hidden');
+        }
+
+        async function saveStaff() {
+            const staffId = document.getElementById('edit-staff-id').value.trim();
+            const payload = {
+                id: document.getElementById('staff-id').value.trim().toUpperCase(),
+                name: document.getElementById('staff-name').value.trim(),
+                email: document.getElementById('staff-email').value.trim(),
+                phone: document.getElementById('staff-phone').value.trim(),
+                department: document.getElementById('staff-department').value.trim(),
+                role: document.getElementById('staff-role').value.trim(),
+                course_assignments: document.getElementById('staff-courses').value.split(',').map(item => item.trim()).filter(Boolean),
+                address: document.getElementById('staff-address').value.trim(),
+                profile_image: document.getElementById('staff-profile-image').value.trim(),
+                status: 'Active',
+            };
+            if (!payload.id || !payload.name) {
+                alert('Staff ID and name are required.');
+                return;
+            }
+            const method = staffId ? 'PUT' : 'POST';
+            const url = staffId ? `/api/admin/staff/${encodeURIComponent(staffId)}` : '/api/admin/staff';
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),                <div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Year</label>
+                        <select id="new-year" class="w-full border rounded-2xl px-4 py-3">
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                alert(result.error || 'Unable to save staff.');
+                return;
+            }
+            if (staffId) {
+                const index = staffMembers.findIndex(item => item.id === staffId);
+                if (index !== -1) staffMembers[index] = result;
+                showToast('Staff updated successfully');
+            } else {
+                staffMembers.unshift(result);
+                showToast('Staff added successfully');
+            }
+            hideStaffModal();
+            renderStaffTable();
+            updateDashboardCounts();
+        }
+
+        function editStaff(id) {
+            const staff = staffMembers.find(item => item.id === id);
+            if (!staff) return;
+            document.getElementById('edit-staff-id').value = staff.id;
+            document.getElementById('staff-id').value = staff.id;
+            document.getElementById('staff-name').value = staff.name;
+            document.getElementById('staff-email').value = staff.email;
+            document.getElementById('staff-phone').value = staff.phone;
+            document.getElementById('staff-department').value = staff.department;
+            document.getElementById('staff-role').value = staff.role;
+            document.getElementById('staff-courses').value = (staff.course_assignments || []).join(', ');
+            document.getElementById('staff-address').value = staff.address;
+            document.getElementById('staff-profile-image').value = staff.profile_image;
+            document.getElementById('staff-modal-title').textContent = 'Edit Staff';
+            document.getElementById('staff-save-button').textContent = 'Save Changes';
+            document.getElementById('staff-modal').classList.remove('hidden');
+        }
+
+        async function deleteStaff(id) {
+            if (!confirm('Delete this staff record?')) return;
+            const response = await fetch(`/api/admin/staff/${encodeURIComponent(id)}`, { method: 'DELETE' });
+            const result = await response.json();
+            if (!response.ok) {
+                alert(result.error || 'Unable to delete staff.');
+                return;
+            }
+            staffMembers = staffMembers.filter(item => item.id !== id);
+            renderStaffTable();
+            updateDashboardCounts();
+            showToast('Staff deleted');
+        }
+
+        function showAddDepartmentModal() {
+            document.getElementById('edit-department-id').value = '';
+            document.getElementById('department-id').value = '';
+            document.getElementById('department-name').value = '';
+            document.getElementById('department-hod').value = '';
+            document.getElementById('department-active').value = 'true';
+            document.getElementById('department-student-count').value = 0;
+            document.getElementById('department-staff-count').value = 0;
+            document.getElementById('department-modal-title').textContent = 'Add Department';
+            document.getElementById('department-save-button').textContent = 'Save Department';
+            document.getElementById('department-modal').classList.remove('hidden');
+        }
+
+        function hideDepartmentModal() {
+            document.getElementById('department-modal').classList.add('hidden');
+        }
+
+        async function saveDepartment() {
+            const departmentId = document.getElementById('edit-department-id').value.trim();
+            const payload = {
+                id: document.getElementById('department-id').value.trim().toUpperCase(),
+                name: document.getElementById('department-name').value.trim(),
+                hod: document.getElementById('department-hod').value.trim(),
+                active: document.getElementById('department-active').value === 'true',
+                student_count: Number(document.getElementById('department-student-count').value) || 0,
+                staff_count: Number(document.getElementById('department-staff-count').value) || 0,
+            };
+            if (!payload.id || !payload.name) {
+                alert('Department ID and name are required.');
+                return;
+            }
+            const method = departmentId ? 'PUT' : 'POST';
+            const url = departmentId ? `/api/admin/departments/${encodeURIComponent(departmentId)}` : '/api/admin/departments';
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                alert(result.error || 'Unable to save department.');
+                return;
+            }
+            if (departmentId) {
+                const index = departments.findIndex(item => item.id === departmentId);
+                if (index !== -1) departments[index] = result;
+                showToast('Department updated');
+            } else {
+                departments.unshift(result);
+                showToast('Department added');
+            }
+            hideDepartmentModal();
+            renderDepartmentsTable();
+            updateDashboardCounts();
+        }
+
+        function editDepartment(id) {
+            const department = departments.find(item => item.id === id);
+            if (!department) return;
+            document.getElementById('edit-department-id').value = department.id;
+            document.getElementById('department-id').value = department.id;
+            document.getElementById('department-name').value = department.name;
+            document.getElementById('department-hod').value = department.hod;
+            document.getElementById('department-active').value = department.active ? 'true' : 'false';
+            document.getElementById('department-student-count').value = department.student_count;
+            document.getElementById('department-staff-count').value = department.staff_count;
+            document.getElementById('department-modal-title').textContent = 'Edit Department';
+            document.getElementById('department-save-button').textContent = 'Save Changes';
+            document.getElementById('department-modal').classList.remove('hidden');
+        }
+
+        async function deleteDepartment(id) {
+            if (!confirm('Delete this department?')) return;
+            const response = await fetch(`/api/admin/departments/${encodeURIComponent(id)}`, { method: 'DELETE' });
+            const result = await response.json();
+            if (!response.ok) {
+                alert(result.error || 'Unable to delete department.');
+                return;
+            }
+            departments = departments.filter(item => item.id !== id);
+            renderDepartmentsTable();
+            updateDashboardCounts();
+            showToast('Department deleted');
+        }
+
+        function showResultModal() {
+            document.getElementById('result-student-id').value = '';
+            document.getElementById('result-student-name').value = '';
+            document.getElementById('result-course-code').value = '';
+            document.getElementById('result-course-name').value = '';
+            document.getElementById('result-score').value = '';
+            document.getElementById('result-semester').value = 'Semester 2';
+            document.getElementById('result-approved').checked = false;
+            document.getElementById('result-modal').classList.remove('hidden');
+        }
+
+        function hideResultModal() {
+            document.getElementById('result-modal').classList.add('hidden');
+        }
+
+        async function saveResult() {
+            const payload = {
+                student_id: document.getElementById('result-student-id').value.trim().toUpperCase(),
+                student_name: document.getElementById('result-student-name').value.trim(),
+                course_code: document.getElementById('result-course-code').value.trim().toUpperCase(),
+                course_name: document.getElementById('result-course-name').value.trim(),
+                score: Number(document.getElementById('result-score').value),
+                semester: document.getElementById('result-semester').value.trim(),
+                approved: document.getElementById('result-approved').checked,
+            };
+            if (!payload.student_id || !payload.course_code || isNaN(payload.score)) {
+                alert('Student ID, course code, and score are required.');
+                return;
+            }
+            const response = await fetch('/api/admin/results', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                alert(result.error || 'Unable to save result.');
+                return;
+            }
+            const existingIndex = resultRecords.findIndex(item => item.student_id === payload.student_id && item.course_code === payload.course_code);
+            if (existingIndex !== -1) {
+                resultRecords[existingIndex] = result.result;
+            } else {
+                resultRecords.unshift(result.result);
+            }
+            hideResultModal();
+            renderResultsTable();
+            updateDashboardCounts();
+            showToast(result.message || 'Result saved');
+        }
+
+        function showFeeModal() {
+            document.getElementById('fee-student-id').value = '';
+            document.getElementById('fee-student-name').value = '';
+            document.getElementById('fee-amount').value = '';
+            document.getElementById('fee-date').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('fee-method').value = 'Cash';
+            document.getElementById('fee-status').value = 'Paid';
+            document.getElementById('fee-balance-input').value = '';
+            document.getElementById('fee-modal').classList.remove('hidden');
+        }
+
+        function hideFeeModal() {
+            document.getElementById('fee-modal').classList.add('hidden');
+        }
+
+        async function saveFee() {
+            const payload = {
+                student_id: document.getElementById('fee-student-id').value.trim().toUpperCase(),
+                student_name: document.getElementById('fee-student-name').value.trim(),
+                amount: Number(document.getElementById('fee-amount').value),
+                date: document.getElementById('fee-date').value,
+                payment_method: document.getElementById('fee-method').value,
+                status: document.getElementById('fee-status').value,
+                balance: Number(document.getElementById('fee-balance-input').value) || 0,
+            };
+            if (!payload.student_id || isNaN(payload.amount)) {
+                alert('Student ID and amount are required.');
+                return;
+            }
+            const response = await fetch('/api/admin/fees', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                alert(result.error || 'Unable to save payment.');
+                return;
+            }
+            feePayments.unshift(result.payment);
+            hideFeeModal();
+            renderFeesTable();
+            updateDashboardCounts();
+            showToast(result.message || 'Payment added');
+        }
+
+        function renderReports() {
+            // simple dashboard summary when reports tab is displayed
+            document.getElementById('section-reports').innerHTML = `
+                <h1 class="text-3xl font-bold mb-8">Reports & Analytics</h1>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-3xl p-8">
+                        <h3 class="font-semibold mb-4">Enrollment by Department</h3>
+                        <div class="space-y-6">
+                            ${departments.map(dept => `
+                                <div class="flex justify-between items-center">
+                                    <span>${escapeHTML(dept.name)}</span>
+                                    <div class="flex-1 mx-6 h-3 bg-gray-100 rounded-full overflow-hidden">
+                                        <div class="h-3 bg-blue-500" style="width: ${Math.min(100, dept.student_count)}%"></div>
+                                    </div>
+                                    <span class="font-mono">${dept.student_count}%</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-3xl p-8">
+                        <h3 class="font-semibold mb-4">Quick Stats</h3>
+                        <ul class="space-y-4 text-sm">
+                            <li class="flex justify-between"><span>Average GPA</span><span class="font-semibold">${calculateAverageGPA().toFixed(2)}</span></li>
+                            <li class="flex justify-between"><span>Approved Results</span><span class="font-semibold">${resultRecords.filter(r => r.approved).length}</span></li>
+                            <li class="flex justify-between"><span>Total Payments</span><span class="font-semibold">${feePayments.length}</span></li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+
+        function calculateAttendanceRate() {
+            const records = Object.values(attendanceRecords).flat();
+            if (!records.length) return 0;
+            let present = 0;
+            let total = 0;
+            records.forEach(record => {
+                record.attendance.forEach(item => {
+                    total += 1;
+                    if (item.status === 'Present') present += 1;
+                });
+            });
+            return total ? Math.round((present / total) * 1000) / 10 : 0;
+        }
+
+        function calculateAverageGPA() {
+            if (!resultRecords.length) return 0;
+            const total = resultRecords.reduce((sum, record) => sum + Number(record.gpa || 0), 0);
+            return total / resultRecords.length;
+        }
+
+        function updateDashboardCounts() {
+            document.getElementById('total-students').textContent = students.length.toLocaleString();
+            document.getElementById('total-staff').textContent = staffMembers.length.toLocaleString();
+            document.getElementById('total-departments').textContent = departments.filter(d => d.active).length.toLocaleString();
+            document.getElementById('attendance-rate').textContent = `${calculateAttendanceRate()}%`;
+            const collected = feePayments.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+            const balance = feePayments.reduce((sum, item) => sum + Number(item.balance || 0), 0);
+            document.getElementById('fee-collected').textContent = `Tsh ${collected.toLocaleString()}`;
+            document.getElementById('fee-balance').textContent = `Tsh ${balance.toLocaleString()}`;
+        }
+
+        function enrollInCourse(code) {
+            showToast(`Enrollment window opened for ${code}`);
+        }
+        
+        // Fake functions
+        function showNotifications() {
+            showToast("No new notifications");
+        }
+        
+        // Toast
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-text').textContent = message;
+            toast.classList.remove('hidden');
+            toast.style.transform = 'translateY(0)';
+            
+            setTimeout(() => {
+                toast.style.transform = 'translateY(80px)';
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 300);
+            }, 2800);
+        }
+        
+        function handleSearch(e) {
+            if (e.key === "Enter") {
+                const term = e.target.value.trim();
+                if (term) {
+                    navigateTo('students');
+                    setTimeout(() => {
+                        document.getElementById('student-search').value = term;
+                        filterStudents();
+                    }, 300);
+                }
+            }
+        }
+        
+        function toggleSidebar() {
+            // For mobile - simple alert since it's desktop-first
+            alert("Sidebar toggle would work on mobile devices.");
+        }
+        
+        // Initialize everything
+        async function initialize() {
+            await loadCourses();
+            await loadAdminData();
+            renderStudentsTable();
+            renderRecentStudentsTable();
+            renderCourses();
+            renderStaffTable();
+            renderDepartmentsTable();
+            renderAttendanceTable();
+            renderResultsTable();
+            renderFeesTable();
+            updateDashboardCounts();
+            
+            // Show dashboard by default
+            navigateTo('dashboard');
+            
+            // Keyboard shortcut hint
+            console.log('%cUniversity Admin Panel Ready! Press "/" to focus search.', 'color: #eab308; font-family: monospace');
+        }
+        
+        function logout() {
+            window.location.href = '/logout';
+        }
+        
+        // Auto start
+        window.onload = initialize;
+    </script>
+</body>
+</html>

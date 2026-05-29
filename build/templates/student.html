@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniStudent - Student Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+        
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link {
+            transition: all 0.2s ease;
+        }
+        
+        .nav-link:hover {
+            background-color: rgb(234 179 8 / 0.1);
+            transform: translateX(8px);
+        }
+        
+        .nav-link-active {
+            background-color: rgb(234 179 8);
+            color: white;
+            border-radius: 8px;
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+        
+        .grade-circle {
+            background: conic-gradient(#eab308 0deg 280deg, #e5e7eb 280deg 360deg);
+        }
+        
+        .sidebar-collapsed {
+            width: 0 !important;
+            min-width: 0 !important;
+        }
+        
+        .sidebar-collapsed + .flex-1 {
+            margin-left: 0 !important;
+        }
+        
+        .hidden-panel {
+            display: none;
+        }
+        
+        .slide-up {
+            animation: slideUp 0.35s ease forwards;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .modal-backdrop {
+            background: rgba(15, 23, 42, 0.65);
+        }
+        
+        .modal-container {
+            max-width: 520px;
+        }
+        
+        .table-fixed {
+            table-layout: fixed;
+        }
+        
+        @media (max-width: 980px) {
+            .sidebar {
+                position: fixed;
+                z-index: 30;
+                height: calc(100vh - 64px);
+                transform: translateX(-110%);
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+    {% set display_name = session.get('name', user_name | default('Student')) %}
+    {% set display_initial = display_name[:1] | upper %}
+    {% set student_email = user.email if user is defined and user and user.email else 'student@university.edu' %}
+    {% set student_program = user.course if user is defined and user and user.course else 'Computer Science' %}
+    {% set student_year = user.year if user is defined and user and user.year else '2' %}
+    {% set student_id = user.student_id if user is defined and user and user.student_id else 'STU2024001' %}
+    {% set student_department = user.department if user is defined and user and user.department else 'Computer Science' %}
+    {% set student_phone = user.phone if user is defined and user and user.phone else 'Not provided' %}
+    {% set student_city = user.city if user is defined and user and user.city else 'Not provided' %}
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white border-r border-gray-200 shadow-xl sidebar flex flex-col">
+            <div class="p-6 border-b">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-yellow-400 rounded-2xl flex items-center justify-center text-white font-bold text-2xl">U</div>
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-tight">Student</h1>
+                        <p class="text-xs text-gray-500">Student Portal</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto py-6 px-3">
+                <nav class="space-y-1">
+                    <a href="#" onclick="navigateTo('dashboard')" class="nav-link nav-link-active flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-dashboard">
+                        <i class="fa-solid fa-gauge w-5"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="#" onclick="navigateTo('courses')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-courses">
+                        <i class="fa-solid fa-book w-5"></i>
+                        <span>My Courses</span>
+                    </a>
+                    <a href="#" onclick="navigateTo('schedule')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-schedule">
+                        <i class="fa-solid fa-calendar w-5"></i>
+                        <span>Timetable</span>
+                    </a>
+                    <a href="#" onclick="navigateTo('grades')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-grades">
+                        <i class="fa-solid fa-chart-pie w-5"></i>
+                        <span>Results</span>
+                    </a>
+                    <a href="#" onclick="navigateTo('assignments')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-assignments">
+                        <i class="fa-solid fa-file-lines w-5"></i>
+                        <span>Assignments</span>
+                    </a>
+                    <a href="#" onclick="navigateTo('attendance')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-attendance">
+                        <i class="fa-solid fa-user-check w-5"></i>
+                        <span>Attendance</span>
+                    </a>
+                    <a href="#" onclick="navigateTo('fees')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-fees">
+                        <i class="fa-solid fa-wallet w-5"></i>
+                        <span>Fees & Payments</span>
+                    </a>
+                    <a href="#" onclick="navigateTo('messages')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-messages">
+                        <i class="fa-solid fa-envelope w-5"></i>
+                        <span>Messages</span>
+                    </a>
+                    <a href="#" onclick="navigateTo('downloads')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-downloads">
+                        <i class="fa-solid fa-download w-5"></i>
+                        <span>Downloads</span>
+                    </a>
+                    <a href="#" onclick="navigateTo('calendar')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-calendar">
+                        <i class="fa-solid fa-book-open w-5"></i>
+                        <span>Academic Calendar</span>
+                    </a>
+                    <a href="#" onclick="navigateTo('profile')" class="nav-link flex items-center gap-3 px-4 py-3 text-sm font-medium" id="nav-profile">
+                        <i class="fa-solid fa-user w-5"></i>
+                        <span>My Profile</span>
+                    </a>
+                </nav>
+            </div>
+            
+            <div class="p-4 border-t">
+                        <div class="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-2xl">
+                            {% if user and user.profile_image %}
+                                <div class="w-9 h-9 rounded-xl overflow-hidden">
+                                    <img src="{{ url_for('static', filename=user.profile_image) }}" alt="Avatar" class="w-full h-full object-cover" />
+                                </div>
+                            {% else %}
+                                <div class="w-9 h-9 bg-blue-600 text-white rounded-xl flex items-center justify-center font-semibold">{{ display_initial }}</div>
+                            {% endif %}
+                            <div class="flex-1">
+                                <p class="font-medium text-sm">{{ display_name }}</p>
+                                <p class="text-xs text-gray-500">{{ student_email }}</p>
+                            </div>
+                            <button onclick="logout()" class="text-gray-400 hover:text-red-500">
+                                <i class="fa-solid fa-right-from-bracket"></i>
+                            </button>
+                        </div>
+                    </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Navbar -->
+            <header class="bg-white border-b h-16 flex items-center px-8 justify-between">
+                <div class="flex items-center gap-4 flex-1">
+                    <button onclick="toggleSidebar()" class="lg:hidden text-gray-500">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                    <div class="relative flex-1 max-w-md">
+                        <input type="text" id="searchInput" 
+                               placeholder="Search courses or materials..." 
+                               class="w-full bg-gray-100 border border-transparent focus:border-yellow-400 rounded-3xl py-3 px-5 pl-12 text-sm focus:outline-none">
+                        <i class="fa-solid fa-magnifying-glass absolute left-5 top-3.5 text-gray-400"></i>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-6">
+                    <div class="relative">
+                        <button onclick="toggleNotificationPanel()" class="relative text-gray-500 hover:text-gray-700">
+                            <i class="fa-solid fa-bell text-xl"></i>
+                            <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">5</span>
+                        </button>
+                        <div id="notification-panel" class="hidden absolute right-0 mt-3 w-80 bg-white border border-gray-200 rounded-3xl shadow-2xl overflow-hidden z-20">
+                            <div class="px-5 py-4 border-b">
+                                <p class="font-semibold">Notifications</p>
+                                <p class="text-xs text-gray-500">Latest updates and reminders</p>
+                            </div>
+                            <div id="notification-list" class="max-h-72 overflow-y-auto"></div>
+                            <button onclick="navigateTo('notifications')" class="w-full text-sm text-yellow-600 py-3 hover:bg-gray-50">View all notifications</button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <div class="text-right">
+                            <p class="text-sm font-semibold">{{ display_name }}</p>
+                            <p class="text-xs text-emerald-600">{{ student_department }}</p>
+                        </div>
+                        {% if user and user.profile_image %}
+                            <div class="w-8 h-8 rounded-2xl overflow-hidden">
+                                <img src="{{ url_for('static', filename=user.profile_image) }}" alt="Avatar" class="w-full h-full object-cover" />
+                            </div>
+                        {% else %}
+                            <div class="w-8 h-8 bg-blue-600 text-white rounded-2xl flex items-center justify-center font-bold">{{ display_initial }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Content Area -->
+            <div class="flex-1 overflow-auto p-8" id="content-area">
+                
+                <!-- Dashboard -->
+                <div id="section-dashboard">
+                    <div class="flex justify-between items-center mb-8">
+                        <h1 class="text-3xl font-bold">Welcome back, {{ display_name }}</h1>
+                        <div class="text-sm bg-white px-5 py-2 rounded-3xl shadow-sm">
+                            Semester 2 &middot; 2025/2026
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 mb-10">
+                        <div class="bg-white rounded-3xl p-6 card-hover">
+                            <p class="text-gray-500">Current GPA</p>
+                            <div class="flex items-end gap-4 mt-4">
+                                <span id="dashboard-gpa" class="text-5xl font-bold">0.00</span>
+                                <div class="mb-2">
+                                    <span id="dashboard-standing" class="text-emerald-500 text-sm font-medium">Pending</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6 card-hover">
+                            <p class="text-gray-500">Attendance %</p>
+                            <div class="flex items-end gap-4 mt-4">
+                                <span id="dashboard-attendance" class="text-5xl font-bold">0%</span>
+                            </div>
+                            <div class="mt-4 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div id="attendance-bar" class="h-2 bg-yellow-400 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6 card-hover">
+                            <p class="text-gray-500">Registered Courses</p>
+                            <div class="flex items-end gap-4 mt-4">
+                                <span id="dashboard-courses" class="text-5xl font-bold">0</span>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6 card-hover">
+                            <p class="text-gray-500">Pending Assignments</p>
+                            <div class="flex items-end gap-4 mt-4">
+                                <span id="dashboard-pending" class="text-5xl font-bold">0</span>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6 card-hover">
+                            <p class="text-gray-500">Fee Balance</p>
+                            <div class="flex items-end gap-4 mt-4">
+                                <span id="dashboard-fees" class="text-5xl font-bold text-red-500">tsh 800,000</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+                        <div class="bg-white rounded-3xl p-6 card-hover">
+                            <div class="flex justify-between items-center mb-4">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Attendance Trend</p>
+                                    <p class="font-semibold mt-1">Last 4 weeks</p>
+                                </div>
+                                <span class="text-xs bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full">Stable</span>
+                            </div>
+                            <canvas id="attendanceChart" height="180"></canvas>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6 card-hover lg:col-span-2">
+                            <div class="flex justify-between items-center mb-4">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Course Load</p>
+                                    <p class="font-semibold mt-1">Credits and performance</p>
+                                </div>
+                                <span class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full">Updated</span>
+                            </div>
+                            <canvas id="courseChart" height="220"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+                        <div class="bg-white rounded-3xl p-6 card-hover">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="font-semibold text-lg">Current Courses</h2>
+                                <button onclick="navigateTo('courses')" class="text-yellow-600 text-sm font-medium">View All &rarr;</button>
+                            </div>
+                            <div class="grid grid-cols-1 gap-4" id="current-courses"></div>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6 card-hover">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="font-semibold text-lg">Activity Summary</h2>
+                                <button onclick="navigateTo('assignments')" class="text-yellow-600 text-sm font-medium">View Assignments</button>
+                            </div>
+                            <div class="space-y-4" id="upcoming-events"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- My Courses -->
+                <div id="section-courses" class="hidden">
+                    <h1 class="text-3xl font-bold mb-8">My Courses</h1>
+                    <div class="bg-white rounded-3xl p-6" id="all-courses-list"></div>
+                </div>
+                
+                <!-- Timetable -->
+                <div id="section-schedule" class="hidden">
+                    <h1 class="text-3xl font-bold mb-8">Weekly Timetable</h1>
+                    <div class="bg-white rounded-3xl p-8" id="timetable-content"></div>
+                </div>
+                
+                <!-- Results -->
+                <div id="section-grades" class="hidden">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+                        <div>
+                            <h1 class="text-3xl font-bold">Academic Results</h1>
+                            <p class="text-gray-500 mt-1">Semester 2  2025/2026</p>
+                        </div>
+                        <button onclick="printResults()" class="bg-yellow-400 hover:bg-yellow-500 px-6 py-3 rounded-2xl font-semibold flex items-center gap-2 w-fit">
+                            <i class="fa-solid fa-print"></i>
+                            Print Results
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-white rounded-3xl p-6">
+                            <p class="text-gray-500 text-sm">GPA</p>
+                            <p id="result-gpa" class="text-4xl font-bold mt-2">0.00</p>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6">
+                            <p class="text-gray-500 text-sm">Total Credits</p>
+                            <p id="result-credits" class="text-4xl font-bold mt-2">0</p>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6">
+                            <p class="text-gray-500 text-sm">Passed Courses</p>
+                            <p id="result-passed" class="text-4xl font-bold mt-2">0</p>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6">
+                            <p class="text-gray-500 text-sm">Academic Standing</p>
+                            <p id="result-standing" class="text-xl font-bold mt-3">Pending</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        <div class="bg-white rounded-3xl p-6 card-hover">
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Semester Performance</p>
+                                    <p class="font-semibold mt-1">Current progress chart</p>
+                                </div>
+                                <span class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full">Semester 2</span>
+                            </div>
+                            <canvas id="performanceChart" height="220"></canvas>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6 shadow-sm flex flex-col justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">Transcript</p>
+                                <h2 class="text-2xl font-semibold mt-3">Official academic results</h2>
+                                <p class="text-gray-500 mt-4">Download your semester transcript for records, applications or review.</p>
+                            </div>
+                            <button onclick="downloadTranscript()" class="mt-8 w-full bg-yellow-400 hover:bg-yellow-500 px-6 py-4 rounded-3xl text-sm font-semibold flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-file-arrow-down"></i>
+                                Download 
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl overflow-hidden">
+                        <table class="w-full min-w-[900px]" id="grades-table">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="text-left py-5 px-6">Code</th>
+                                    <th class="text-left py-5 px-6">Course Title</th>
+                                    <th class="text-left py-5 px-6">CA / 40</th>
+                                    <th class="text-left py-5 px-6">Exam / 60</th>
+                                    <th class="text-left py-5 px-6">Total</th>
+                                    <th class="text-left py-5 px-6">Grade</th>
+                                    <th class="text-left py-5 px-6">Points</th>
+                                    <th class="text-left py-5 px-6">Credits</th>
+                                    <th class="text-center py-5 px-8">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="grades-tbody" class="divide-y"></tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Profile -->
+                <div id="section-profile" class="hidden">
+                    <h1 class="text-3xl font-bold mb-8">My Profile</h1>
+                    <div class="max-w-3xl mx-auto bg-white rounded-3xl p-10">
+                        <div class="grid gap-8 lg:grid-cols-[180px_auto] items-start">
+                            <div class="flex flex-col items-center gap-4">
+                                <div class="w-28 h-28 rounded-3xl overflow-hidden">
+                                    {% if user and user.profile_image %}
+                                        <img src="{{ url_for('static', filename=user.profile_image) }}" alt="Profile photo" class="w-full h-full object-cover" />
+                                    {% else %}
+                                        <div class="w-full h-full bg-blue-600 text-white flex items-center justify-center text-5xl font-bold">{{ display_initial }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="text-center">
+                                    <h2 class="text-2xl font-bold">{{ display_name }}</h2>
+                                    <p class="text-gray-500">{{ student_department }}</p>
+                                </div>
+                                <div class="text-sm text-gray-500 text-center">Student profile updated 2 days ago</div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                                <div>
+                                    <p class="font-medium text-gray-500 mb-1">Registration Number</p>
+                                    <p>{{ student_id }}</p>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-500 mb-1">Program</p>
+                                    <p>{{ student_program }}</p>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-500 mb-1">Year of Study</p>
+                                    <p>{{ student_year }}</p>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-500 mb-1">Department</p>
+                                    <p>{{ student_department }}</p>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-500 mb-1">Email</p>
+                                    <p>{{ student_email }}</p>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-500 mb-1">Phone</p>
+                                    <p>{{ student_phone }}</p>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <p class="font-medium text-gray-500 mb-1">City</p>
+                                    <p>{{ student_city }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button onclick="openEditModal()" 
+                                class="mt-10 w-full bg-yellow-400 hover:bg-yellow-500 py-4 rounded-2xl font-semibold">
+                            Edit Profile
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Assignments -->
+                <div id="section-assignments" class="hidden">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+                        <div>
+                            <h1 class="text-3xl font-bold">Assignments</h1>
+                            <p class="text-gray-500 mt-1">Due dates, submissions and marks at a glance</p>
+                        </div>
+                        <button onclick="showToast('Assignment upload is currently unavailable in demo mode')" class="bg-yellow-400 hover:bg-yellow-500 px-6 py-3 rounded-2xl font-semibold flex items-center gap-2 w-fit">
+                            <i class="fa-solid fa-upload"></i>
+                            Submit 
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8" id="assignment-cards"></div>
+                    <div class="bg-white rounded-3xl overflow-hidden">
+                        <table class="w-full min-w-[900px]">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="text-left py-5 px-6">Assignment</th>
+                                    <th class="text-left py-5 px-6">Course</th>
+                                    <th class="text-left py-5 px-6">Deadline</th>
+                                    <th class="text-left py-5 px-6">Status</th>
+                                    <th class="text-left py-5 px-6">Marks</th>
+                                    <th class="text-left py-5 px-6">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assignments-table" class="divide-y"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Attendance -->
+                <div id="section-attendance" class="hidden">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+                        <div>
+                            <h1 class="text-3xl font-bold">Attendance</h1>
+                            <p class="text-gray-500 mt-1">Track your present and absent history</p>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6 w-full md:w-auto shadow-sm">
+                            <p class="text-gray-500 text-sm">Attendance Score</p>
+                            <p id="attendance-score" class="text-4xl font-bold mt-3">0%</p>
+                            <div class="mt-4 h-3 bg-gray-100 rounded-full overflow-hidden">
+                                <div id="attendance-progress" class="h-3 bg-emerald-500 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        <div class="bg-white rounded-3xl p-6">
+                            <h2 class="font-semibold text-lg mb-4">Attendance History</h2>
+                            <div id="attendance-history" class="space-y-3"></div>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6">
+                            <h2 class="font-semibold text-lg mb-4">Attendance </h2>
+                            <canvas id="attendanceBarChart" height="260"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fees & Payments -->
+                <div id="section-fees" class="hidden">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+                        <div>
+                            <h1 class="text-3xl font-bold">Fees & Payments</h1>
+                            <p class="text-gray-500 mt-1">Manage balances and receipts</p>
+                        </div>
+                        <button onclick="downloadReceipt()" class="bg-yellow-400 hover:bg-yellow-500 px-6 py-3 rounded-2xl font-semibold flex items-center gap-2 w-fit">
+                            <i class="fa-solid fa-file-invoice-dollar"></i>
+                            Download 
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                        <div class="bg-white rounded-3xl p-6 shadow-sm">
+                            <p class="text-gray-500">Fee Balance</p>
+                            <p id="fee-balance" class="text-4xl font-bold text-red-500 mt-4">tsh 0</p>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6 shadow-sm">
+                            <p class="text-gray-500">Next Due Date</p>
+                            <p id="fee-due" class="text-3xl font-bold mt-4">June 15, 2026</p>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6 shadow-sm">
+                            <p class="text-gray-500">Last Payment</p>
+                            <p id="last-payment" class="text-3xl font-bold mt-4">tsh 2,500,000</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-3xl overflow-hidden">
+                        <table class="w-full min-w-[700px]">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="text-left py-5 px-6">Date</th>
+                                    <th class="text-left py-5 px-6">Description</th>
+                                    <th class="text-left py-5 px-6">Amount</th>
+                                    <th class="text-left py-5 px-6">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="payment-history" class="divide-y"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Notifications -->
+                <div id="section-notifications" class="hidden">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+                        <div>
+                            <h1 class="text-3xl font-bold">Notifications</h1>
+                            <p class="text-gray-500 mt-1">Assignment reminders, result updates and announcements</p>
+                        </div>
+                        <button onclick="clearNotifications()" class="bg-gray-100 hover:bg-gray-200 px-6 py-3 rounded-2xl font-semibold w-fit">
+                            Clear All
+                        </button>
+                    </div>
+                    <div class="space-y-4" id="notifications-list"></div>
+                </div>
+
+                <!-- Messages -->
+                <div id="section-messages" class="hidden">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+                        <div>
+                            <h1 class="text-3xl font-bold">Messages</h1>
+                            <p class="text-gray-500 mt-1">Messages from lecturers and administration</p>
+                        </div>
+                        <button onclick="showToast('Messaging is available within the portal')" class="bg-yellow-400 hover:bg-yellow-500 px-6 py-3 rounded-2xl font-semibold flex items-center gap-2 w-fit">
+                            <i class="fa-solid fa-comment"></i>
+                            New Message
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-3xl p-6">
+                            <h2 class="font-semibold text-lg mb-4">Lecturer Messages</h2>
+                            <div id="lecturer-messages" class="space-y-4"></div>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6">
+                            <h2 class="font-semibold text-lg mb-4">Admin Announcements</h2>
+                            <div id="admin-announcements" class="space-y-4"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Downloads -->
+                <div id="section-downloads" class="hidden">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+                        <div>
+                            <h1 class="text-3xl font-bold">Downloads</h1>
+                            <p class="text-gray-500 mt-1">Notes, timetables and results documents</p>
+                        </div>
+                        <button onclick="showToast('Downloading sample documents...')" class="bg-yellow-400 hover:bg-yellow-500 px-6 py-3 rounded-2xl font-semibold flex items-center gap-2 w-fit">
+                            <i class="fa-solid fa-file-arrow-down"></i>
+                            Download All
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="download-grid"></div>
+                </div>
+
+                <!-- Academic Calendar -->
+                <div id="section-calendar" class="hidden">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+                        <div>
+                            <h1 class="text-3xl font-bold">Academic Calendar</h1>
+                            <p class="text-gray-500 mt-1">Semester dates, exam schedules and key deadlines</p>
+                        </div>
+                        <button onclick="showToast('Calendar sync is enabled')" class="bg-yellow-400 hover:bg-yellow-500 px-6 py-3 rounded-2xl font-semibold flex items-center gap-2 w-fit">
+                            <i class="fa-solid fa-calendar-check"></i>
+                            Sync Calendar
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-3xl p-6">
+                            <h2 class="font-semibold text-lg mb-4">Semester Dates</h2>
+                            <div id="semester-dates" class="space-y-4"></div>
+                        </div>
+                        <div class="bg-white rounded-3xl p-6">
+                            <h2 class="font-semibold text-lg mb-4">Exam Schedule</h2>
+                            <div id="exam-schedule" class="space-y-4"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast -->
+    <div id="toast" class="hidden fixed bottom-6 right-6 bg-gray-800 text-white px-6 py-4 rounded-3xl flex items-center gap-3 shadow-2xl">
+        <i class="fa-solid fa-check-circle text-green-400"></i>
+        <span id="toast-text" class="font-medium"></span>
+    </div>
+    
+    <script>
+        // Sample Data
+        let enrolledCourses = {{ courses | default([]) | tojson }}.map((course, index) => ({
+            code: course.code || course.course_code || `CS${300 + index}`,
+            name: course.name || course.course_name || `Course ${index + 1}`,
+            credits: course.credits || 3,
+            progress: course.progress || [75, 60, 90, 45][index % 4],
+            grade: course.grade || ["A-", "B+", "A", "B"][index % 4],
+            instructor: course.instructor || course.lecturer || "Dr. Lecturer",
+            time: course.time || "09:00 - 10:30",
+            room: course.room || `Room ${301 + index}`,
+            status: course.status || "On Track"
+        }));
+        
+        let results = {{ results | default([]) | tojson }};
+        const assignments = [
+            { title: 'Web App Deliverable', course: 'CS305', deadline: 'May 25, 2026', status: 'Pending', marks: '0 / 100' },
+            { title: 'Database Project', course: 'CS301', deadline: 'May 28, 2026', status: 'Submitted', marks: '78 / 100' },
+            { title: 'Algorithms Quiz', course: 'CS302', deadline: 'June 3, 2026', status: 'Pending', marks: '0 / 50' }
+        ];
+        const attendanceHistory = [
+            { date: 'May 20, 2026', status: 'Present', note: 'CS305 Lecture' },
+            { date: 'May 18, 2026', status: 'Absent', note: 'Medical appointment' },
+            { date: 'May 16, 2026', status: 'Present', note: 'Tutorial session' },
+            { date: 'May 14, 2026', status: 'Present', note: 'Lab session' }
+        ];
+        const paymentHistory = [
+            { date: 'Apr 10, 2026', description: 'Semester Fee Part 1', amount: '$2,500', status: 'Paid' },
+            { date: 'Jan 15, 2026', description: 'Library Fee', amount: '$120', status: 'Paid' },
+            { date: 'Dec 01, 2025', description: 'Accommodation Deposit', amount: '$350', status: 'Paid' }
+        ];
+        const portalNotifications = [
+            { title: 'Assignment Reminder', detail: 'Submit Web App Deliverable by tomorrow.', time: '2h ago', type: 'assignment' },
+            { title: 'Result Published', detail: 'Your CS301 score is now available.', time: '1d ago', type: 'result' },
+            { title: 'Campus Announcement', detail: 'Library will be closed on Saturday.', time: '3d ago', type: 'announcement' }
+        ];
+        const lecturerMessages = [
+            { sender: 'Dr. Patel', title: 'Lab Registration', preview: 'Please register for the lab session by Friday.', time: 'Today' },
+            { sender: 'Admin Office', title: 'Orientation Update', preview: 'The student hub timetable has changed.', time: 'May 18' }
+        ];
+        const adminAnnouncements = [
+            { sender: 'Dean', title: 'Exam Notice', preview: 'Exams begin June 10 in the main hall.', time: 'May 20' },
+            { sender: 'Registrar', title: 'Fee Reminder', preview: 'Pay your balance before June 1.', time: 'May 15' }
+        ];
+        const downloadItems = [
+            { title: 'Week 12 Notes', type: 'PDF', file: 'week-12-notes.pdf' },
+            { title: 'Timetable', type: 'PDF', file: 'timetable.pdf' },
+            { title: 'Results Summary', type: 'PDF', file: 'results.pdf' },
+            { title: 'Semester Handbook', type: 'PDF', file: 'handbook.pdf' }
+        ];
+        const semesterDates = [
+            { title: 'Semester Starts', date: 'Feb 2, 2026' },
+            { title: 'Midterm Week', date: 'Apr 12 - Apr 16, 2026' },
+            { title: 'Semester Ends', date: 'June 20, 2026' }
+        ];
+        const examSchedule = [
+            { title: 'Database Systems', date: 'June 10, 2026', time: '14:00', room: 'Auditorium B' },
+            { title: 'Web Technologies', date: 'June 12, 2026', time: '10:00', room: 'Lab 3' }
+        ];
+
+        function getGrade(total) {
+            if (total >= 80) return { letter: "A", point: 5.0, status: "Pass" };
+            if (total >= 70) return { letter: "B+", point: 4.0, status: "Pass" };
+            if (total >= 60) return { letter: "B", point: 3.0, status: "Pass" };
+            if (total >= 50) return { letter: "C", point: 2.0, status: "Pass" };
+            if (total >= 40) return { letter: "D", point: 1.0, status: "Re-sit" };
+            return { letter: "F", point: 0.0, status: "Fail" };
+        }
+
+        function calculateResultSummary() {
+            let totalCredits = 0;
+            let weightedPoints = 0;
+            let passed = 0;
+
+            results.forEach(result => {
+                const total = Number(result.coursework) + Number(result.exam);
+                const grade = getGrade(total);
+                const credits = Number(result.credits);
+                totalCredits += credits;
+                weightedPoints += grade.point * credits;
+                if (grade.status === "Pass") passed += 1;
+            });
+
+            const gpa = totalCredits ? (weightedPoints / totalCredits).toFixed(2) : "0.00";
+            const standing = Number(gpa) >= 3.5 ? "First Class" :
+                             Number(gpa) >= 3.0 ? "Upper Second" :
+                             Number(gpa) >= 2.0 ? "Satisfactory" :
+                             Number(gpa) >= 1.0 ? "Probation" : "Pending";
+
+            return { gpa, totalCredits, passed, standing };
+        }
+
+        function updateResultSummary() {
+            const summary = calculateResultSummary();
+            const attendancePercent = Math.round((attendanceHistory.filter(item => item.status === 'Present').length / attendanceHistory.length) * 100);
+            document.getElementById('dashboard-gpa').textContent = summary.gpa;
+            document.getElementById('dashboard-credits').textContent = summary.totalCredits;
+            document.getElementById('dashboard-standing').textContent = summary.standing;
+            document.getElementById('dashboard-attendance').textContent = `${attendancePercent}%`;
+            document.getElementById('dashboard-pending').textContent = assignments.filter(item => item.status === 'Pending').length;
+            document.getElementById('dashboard-fees').textContent = '$1,250';
+            document.getElementById('dashboard-courses').textContent = enrolledCourses.length;
+            document.getElementById('attendance-bar').style.width = `${attendancePercent}%`;
+            document.getElementById('result-gpa').textContent = summary.gpa;
+            document.getElementById('result-credits').textContent = summary.totalCredits;
+            document.getElementById('result-passed').textContent = summary.passed;
+            document.getElementById('result-standing').textContent = summary.standing;
+        }
+        
+        // Navigation
+        function navigateTo(section) {
+            document.querySelectorAll('#content-area > div').forEach(div => div.classList.add('hidden'));
+            const target = document.getElementById(`section-${section}`);
+            if (target) target.classList.remove('hidden');
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.toggle('nav-link-active', link.id === `nav-${section}`));
+            switch (section) {
+                case 'dashboard':
+                    renderCurrentCourses();
+                    renderUpcomingEvents();
+                    break;
+                case 'courses':
+                    renderAllCourses();
+                    break;
+                case 'schedule':
+                    renderTimetable();
+                    break;
+                case 'grades':
+                    renderGrades();
+                    break;
+                case 'assignments':
+                    renderAssignments();
+                    break;
+                case 'attendance':
+                    renderAttendance();
+                    break;
+                case 'fees':
+                    renderFees();
+                    break;
+                case 'notifications':
+                    renderNotifications();
+                    break;
+                case 'messages':
+                    renderMessages();
+                    break;
+                case 'downloads':
+                    renderDownloads();
+                    break;
+                case 'calendar':
+                    renderCalendar();
+                    break;
+                default:
+                    renderCurrentCourses();
+            }
+        }
+        
+        // Render Current Courses (Dashboard)
+        function renderCurrentCourses(filteredCourses) {
+            const container = document.getElementById('current-courses');
+            container.innerHTML = '';
+            const coursesToShow = filteredCourses || enrolledCourses.slice(0, 3);
+            
+            coursesToShow.forEach(course => {
+                const div = document.createElement('div');
+                div.className = "bg-white rounded-3xl p-6 card-hover border border-gray-100";
+                div.innerHTML = `
+                    <div class="flex justify-between">
+                        <div>
+                            <span class="font-mono text-yellow-600">${course.code}</span>
+                            <h4 class="font-semibold mt-1">${course.name}</h4>
+                        </div>
+                        <span class="text-xs ${course.progress > 80 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} px-3 py-1 rounded-full">${course.status}</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-4">${course.instructor}</p>
+                    <div class="mt-5 text-sm text-gray-600 space-y-1">
+                        <div><strong>Credits:</strong> ${course.credits}</div>
+                        <div><strong>Room:</strong> ${course.room}</div>
+                    </div>
+                    <div class="mt-6">
+                        <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-2 bg-yellow-400 rounded-full" style="width: ${course.progress}%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs mt-2">
+                            <span>Progress</span>
+                            <span>${course.progress}%</span>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex gap-3">
+                        <button onclick="showToast('Assignments for ${course.code}')" class="flex-1 py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-sm">Assignments</button>
+                        <button onclick="showToast('Materials for ${course.code}')" class="flex-1 py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-sm">Materials</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+        
+        function renderAllCourses(filteredCourses) {
+            const list = filteredCourses || enrolledCourses;
+            let html = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6">`;
+            list.forEach(course => {
+                html += `
+                    <div class="border rounded-3xl p-6 hover:border-yellow-300 transition bg-white shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="font-mono text-sm text-yellow-600">${course.code}</span>
+                                <h4 class="font-semibold text-lg mt-1">${course.name}</h4>
+                            </div>
+                            <span class="px-4 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-2xl">${course.grade}</span>
+                        </div>
+                        <div class="mt-5 text-sm text-gray-500 space-y-2">
+                            <div><strong>Lecturer:</strong> ${course.instructor}</div>
+                            <div><strong>Credits:</strong> ${course.credits}</div>
+                            <div><strong>Schedule:</strong> ${course.time}</div>
+                            <div><strong>Room:</strong> ${course.room}</div>
+                        </div>
+                        <div class="mt-5">
+                            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="h-2 bg-yellow-400 rounded-full" style="width: ${course.progress}%"></div>
+                            </div>
+                            <div class="flex justify-between text-xs mt-2 text-gray-500">
+                                <span>Progress</span>
+                                <span>${course.progress}%</span>
+                            </div>
+                        </div>
+                        <div class="mt-6 grid grid-cols-2 gap-3">
+                            <button onclick="showToast('Viewing assignments for ${course.code}')" class="py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-sm">Assignments</button>
+                            <button onclick="showToast('Downloading materials for ${course.code}')" class="py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-sm">Materials</button>
+                        </div>
+                        <button onclick="showToast('Viewing grades for ${course.code}')" class="mt-4 w-full py-3 rounded-2xl bg-yellow-400 hover:bg-yellow-500 text-white text-sm font-semibold">View Grades</button>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+            document.getElementById('all-courses-list').innerHTML = html;
+        }
+
+        function renderTimetable() {
+            const schedule = [
+                { time: '08:00 - 09:30', monday: { code: 'ENG201', lecturer: 'Dr. Ali', room: 'A101' }, tuesday: null, wednesday: { code: 'MATH201', lecturer: 'Prof. Shah', room: 'B204' }, thursday: null, friday: { code: 'CS310', lecturer: 'Dr. Mwangi', room: 'C102' } },
+                { time: '09:45 - 11:15', monday: { code: 'CS301', lecturer: 'Dr. Patel', room: 'A102' }, tuesday: { code: 'CS305', lecturer: 'Dr. Kimani', room: 'C303' }, wednesday: null, thursday: { code: 'PHY220', lecturer: 'Dr. Njeri', room: 'B111' }, friday: null },
+                { time: '11:30 - 13:00', monday: null, tuesday: { code: 'HIST110', lecturer: 'Dr. Ouma', room: 'D106' }, wednesday: { code: 'CS302', lecturer: 'Dr. Otieno', room: 'A204' }, thursday: null, friday: { code: 'CS308', lecturer: 'Dr. Amina', room: 'C110' } }
+            ];
+            let html = `<div class="overflow-x-auto rounded-3xl border border-gray-100 bg-white shadow-sm"><table class="w-full min-w-[860px] table-fixed"><thead><tr class="bg-gray-50"><th class="py-4 px-6 text-left">Time</th><th class="py-4 px-6 text-left">Monday</th><th class="py-4 px-6 text-left">Tuesday</th><th class="py-4 px-6 text-left">Wednesday</th><th class="py-4 px-6 text-left">Thursday</th><th class="py-4 px-6 text-left">Friday</th></tr></thead><tbody class="text-sm">`;
+            schedule.forEach(slot => {
+                html += `<tr class="border-b"><td class="py-5 px-6 font-medium">${slot.time}</td>`;
+                ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].forEach(day => {
+                    if (slot[day]) {
+                        html += `<td class="py-5 px-6 align-top bg-${day === 'monday' ? 'yellow' : day === 'tuesday' ? 'blue' : day === 'wednesday' ? 'green' : day === 'thursday' ? 'purple' : 'yellow'}-50"><div class="font-semibold">${slot[day].code}</div><div class="text-xs text-gray-500">${slot[day].lecturer}</div><div class="text-xs text-gray-500">${slot[day].room}</div></td>`;
+                    } else {
+                        html += `<td class="py-5 px-6 text-gray-400">-</td>`;
+                    }
+                });
+                html += `</tr>`;
+            });
+            html += `</tbody></table></div>`;
+            document.getElementById('timetable-content').innerHTML = html;
+        }
+
+        function renderGrades() {
+            const tbody = document.getElementById('grades-tbody');
+            tbody.innerHTML = '';
+            
+            results.forEach(result => {
+                const total = Number(result.coursework) + Number(result.exam);
+                const grade = getGrade(total);
+                const statusClass = grade.status === "Pass" ? "bg-emerald-100 text-emerald-700" :
+                                    grade.status === "Re-sit" ? "bg-amber-100 text-amber-700" :
+                                    "bg-red-100 text-red-700";
+                const row = document.createElement('tr');
+                row.className = "hover:bg-gray-50";
+                row.innerHTML = `
+                    <td class="py-6 px-6 font-mono text-yellow-700">${result.course_code}</td>
+                    <td class="py-6 px-6 font-medium">${result.course_name}</td>
+                    <td class="py-6 px-6">${result.coursework}</td>
+                    <td class="py-6 px-6">${result.exam}</td>
+                    <td class="py-6 px-6 font-semibold">${total}</td>
+                    <td class="py-6 px-6 font-bold text-lg">${grade.letter}</td>
+                    <td class="py-6 px-6">${grade.point.toFixed(1)}</td>
+                    <td class="py-6 px-6">${result.credits}</td>
+                    <td class="py-6 px-8 text-center">
+                        <span class="px-5 py-1 ${statusClass} rounded-3xl text-sm">${grade.status}</span>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            if (!results.length) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="py-10 px-8 text-center text-gray-500">No results have been published yet.</td>
+                    </tr>
+                `;
+            }
+
+            updateResultSummary();
+        }
+        
+        function renderUpcomingEvents() {
+            const container = document.getElementById('upcoming-events');
+            const events = [
+                { title: "Database Systems Midterm", date: "Tomorrow - 14:00", type: "exam" },
+                { title: "Web Technologies Assignment Due", date: "May 25, 2026", type: "assignment" },
+                { title: "Fee Payment Reminder", date: "June 1, 2026", type: "payment" }
+            ];
+            
+            let html = '';
+            events.forEach(event => {
+                html += `
+                    <div class="bg-white p-5 rounded-3xl flex items-center gap-4 card-hover">
+                        <div class="w-12 h-12 ${event.type === 'exam' ? 'bg-blue-100 text-blue-600' : 'bg-yellow-100 text-yellow-600'} rounded-2xl flex items-center justify-center text-2xl">
+                            <i class="fa-solid ${event.type === 'exam' ? 'fa-file-pen' : 'fa-calendar-day'}"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium">${event.title}</p>
+                            <p class="text-sm text-gray-500">${event.date}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+        
+        function viewCourse(code) {
+            showToast(`Opening course materials for ${code}...`);
+        }
+
+        function renderAssignments() {
+            const cards = document.getElementById('assignment-cards');
+            const table = document.getElementById('assignments-table');
+            cards.innerHTML = assignments.map(item => `
+                <div class="bg-white rounded-3xl p-6 card-hover border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <p class="text-gray-500 text-sm">${item.course}</p>
+                            <h3 class="font-semibold text-lg">${item.title}</h3>
+                        </div>
+                        <span class="text-xs ${item.status === 'Submitted' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} px-3 py-1 rounded-full">${item.status}</span>
+                    </div>
+                    <p class="text-sm text-gray-500">Deadline: ${item.deadline}</p>
+                    <p class="mt-4 text-gray-900 font-semibold">Marks: ${item.marks}</p>
+                    <div class="mt-6 flex items-center gap-3">
+                        <button onclick="showToast('Viewing assignment details...')" class="w-full py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-sm">View</button>
+                        <button onclick="showToast('Uploading assignment...')" class="w-full py-3 rounded-2xl bg-yellow-400 hover:bg-yellow-500 text-white text-sm">Upload</button>
+                    </div>
+                </div>
+            `).join('');
+            table.innerHTML = assignments.map(item => `
+                <tr class="hover:bg-gray-50">
+                    <td class="py-6 px-6 font-medium">${item.title}</td>
+                    <td class="py-6 px-6 text-gray-600">${item.course}</td>
+                    <td class="py-6 px-6">${item.deadline}</td>
+                    <td class="py-6 px-6">${item.status}</td>
+                    <td class="py-6 px-6">${item.marks}</td>
+                    <td class="py-6 px-6"><button onclick="showToast('Viewing ${item.title} details...')" class="text-yellow-600 text-sm font-medium">Details</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderAttendance() {
+            const attendancePercent = Math.round((attendanceHistory.filter(item => item.status === 'Present').length / attendanceHistory.length) * 100);
+            document.getElementById('attendance-score').textContent = `${attendancePercent}%`;
+            document.getElementById('attendance-progress').style.width = `${attendancePercent}%`;
+            document.getElementById('dashboard-attendance').textContent = `${attendancePercent}%`;
+            document.getElementById('attendance-bar').style.width = `${attendancePercent}%`;
+
+            document.getElementById('attendance-history').innerHTML = attendanceHistory.map(item => `
+                <div class="flex items-center justify-between rounded-3xl border border-gray-100 p-4">
+                    <div>
+                        <p class="font-medium">${item.date}</p>
+                        <p class="text-sm text-gray-500">${item.note}</p>
+                    </div>
+                    <span class="text-sm ${item.status === 'Present' ? 'text-emerald-700 bg-emerald-100' : 'text-red-700 bg-red-100'} px-3 py-1 rounded-full">${item.status}</span>
+                </div>
+            `).join('');
+
+            const chartEl = document.getElementById('attendanceBarChart');
+            if (chartEl) {
+                new Chart(chartEl, {
+                    type: 'bar',
+                    data: {
+                        labels: attendanceHistory.map(item => item.date),
+                        datasets: [{ label: 'Presence', data: attendanceHistory.map(item => item.status === 'Present' ? 1 : 0), backgroundColor: attendanceHistory.map(item => item.status === 'Present' ? '#0ea5e9' : '#f97316') }]
+                    },
+                    options: { plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { ticks: { color: '#6b7280' } } } }
+                });
+            }
+        }
+
+        function renderFees() {
+            document.getElementById('fee-balance').textContent = '$1,250';
+            document.getElementById('last-payment').textContent = '$2,500';
+            document.getElementById('payment-history').innerHTML = paymentHistory.map(item => `
+                <tr class="hover:bg-gray-50">
+                    <td class="py-5 px-6">${item.date}</td>
+                    <td class="py-5 px-6">${item.description}</td>
+                    <td class="py-5 px-6">${item.amount}</td>
+                    <td class="py-5 px-6"><span class="px-3 py-1 rounded-full ${item.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} text-sm">${item.status}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderNotifications() {
+            document.getElementById('notification-list').innerHTML = portalNotifications.map(note => `
+                <div class="flex items-start gap-4 px-5 py-4 hover:bg-gray-50 transition rounded-3xl">
+                    <div class="w-10 h-10 rounded-2xl bg-gray-100 flex items-center justify-center text-yellow-600">
+                        <i class="fa-solid ${note.type === 'assignment' ? 'fa-file-circle-check' : note.type === 'result' ? 'fa-chart-line' : 'fa-bullhorn'}"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-medium">${note.title}</p>
+                        <p class="text-sm text-gray-500">${note.detail}</p>
+                    </div>
+                    <p class="text-xs text-gray-400">${note.time}</p>
+                </div>
+            `).join('');
+            document.getElementById('notifications-list').innerHTML = document.getElementById('notification-list').innerHTML;
+        }
+
+        function renderMessages() {
+            document.getElementById('lecturer-messages').innerHTML = lecturerMessages.map(msg => `
+                <div class="rounded-3xl border border-gray-100 p-4 hover:bg-gray-50 transition">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="font-semibold">${msg.sender}</p>
+                        <span class="text-xs text-gray-400">${msg.time}</span>
+                    </div>
+                    <p class="text-sm text-gray-600">${msg.title}</p>
+                    <p class="text-sm text-gray-500 mt-2">${msg.preview}</p>
+                </div>
+            `).join('');
+            document.getElementById('admin-announcements').innerHTML = adminAnnouncements.map(note => `
+                <div class="rounded-3xl border border-gray-100 p-4 hover:bg-gray-50 transition">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="font-semibold">${note.sender}</p>
+                        <span class="text-xs text-gray-400">${note.time}</span>
+                    </div>
+                    <p class="text-sm text-gray-600">${note.title}</p>
+                    <p class="text-sm text-gray-500 mt-2">${note.preview}</p>
+                </div>
+            `).join('');
+        }
+
+        function renderDownloads() {
+            document.getElementById('download-grid').innerHTML = downloadItems.map(item => `
+                <div class="bg-white rounded-3xl p-6 card-hover border border-gray-100">
+                    <div class="flex items-center gap-3 mb-5">
+                        <div class="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-3xl flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-file-pdf"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold">${item.title}</p>
+                            <p class="text-sm text-gray-500">${item.type}</p>
+                        </div>
+                    </div>
+                    <button onclick="showToast('Downloading ${item.title}...')" class="w-full py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-sm">Download</button>
+                </div>
+            `).join('');
+        }
+
+        function renderCalendar() {
+            document.getElementById('semester-dates').innerHTML = semesterDates.map(item => `
+                <div class="rounded-3xl border border-gray-100 p-4 hover:bg-gray-50 transition">
+                    <p class="font-semibold">${item.title}</p>
+                    <p class="text-sm text-gray-500 mt-1">${item.date}</p>
+                </div>
+            `).join('');
+            document.getElementById('exam-schedule').innerHTML = examSchedule.map(item => `
+                <div class="rounded-3xl border border-gray-100 p-4 hover:bg-gray-50 transition">
+                    <p class="font-semibold">${item.title}</p>
+                    <p class="text-sm text-gray-500 mt-1">${item.date} · ${item.time} · ${item.room}</p>
+                </div>
+            `).join('');
+        }
+
+        function createCharts() {
+            const attendanceChartCanvas = document.getElementById('attendanceChart');
+            if (attendanceChartCanvas) {
+                new Chart(attendanceChartCanvas, {
+                    type: 'line',
+                    data: { labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'], datasets: [{ label: 'Attendance %', data: [90, 92, 94, 96], borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.15)', tension: 0.35, fill: true }] },
+                    options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#6b7280' } }, y: { beginAtZero: true, max: 100, ticks: { color: '#6b7280' } } } }
+                });
+            }
+            const courseChartCanvas = document.getElementById('courseChart');
+            if (courseChartCanvas) {
+                new Chart(courseChartCanvas, {
+                    type: 'doughnut',
+                    data: { labels: enrolledCourses.map(course => course.code), datasets: [{ data: enrolledCourses.map(course => course.credits), backgroundColor: ['#f59e0b', '#0ea5e9', '#34d399', '#a855f7', '#fb7185'] }] },
+                    options: { plugins: { legend: { position: 'bottom', labels: { color: '#6b7280' } } } }
+                });
+            }
+        }
+
+        function renderPerformanceChart() {
+            const performanceCanvas = document.getElementById('performanceChart');
+            if (!performanceCanvas) return;
+            new Chart(performanceCanvas, {
+                type: 'bar',
+                data: { labels: results.map(result => result.course_code), datasets: [{ label: 'Total Score', data: results.map(result => Number(result.coursework) + Number(result.exam)), backgroundColor: '#facc15' }] },
+                options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100, ticks: { color: '#6b7280' } }, x: { ticks: { color: '#6b7280' } } } }
+            });
+        }
+
+        function searchPortal() {
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+            const filteredCourses = enrolledCourses.filter(course => {
+                return course.name.toLowerCase().includes(query) || course.code.toLowerCase().includes(query) || course.instructor.toLowerCase().includes(query);
+            });
+            if (document.getElementById('section-courses').classList.contains('hidden')) {
+                renderCurrentCourses(filteredCourses.slice(0, 3));
+            } else {
+                renderAllCourses(filteredCourses);
+            }
+        }
+
+        function toggleNotificationPanel() {
+            const panel = document.getElementById('notification-panel');
+            panel.classList.toggle('hidden');
+            panel.classList.toggle('slide-up');
+        }
+
+        function openEditModal() {
+            const modal = document.createElement('div');
+            modal.id = 'profile-edit-modal';
+            modal.className = 'fixed inset-0 modal-backdrop flex items-center justify-center p-4';
+            modal.innerHTML = `
+                <form method="POST" action="{{ url_for('profile') }}" enctype="multipart/form-data" class="bg-white rounded-3xl p-6 modal-container shadow-2xl">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-2xl font-semibold">Edit Profile</h2>
+                            <p class="text-sm text-gray-500">Update your contact and program details.</p>
+                        </div>
+                        <button type="button" onclick="closeEditModal()" class="text-gray-400 hover:text-gray-700"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="space-y-4 text-sm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <label class="block"><span class="text-gray-600">Full Name</span><input name="name" id="edit-name" type="text" value="{{ display_name }}" class="mt-2 w-full rounded-2xl border border-gray-200 px-4 py-3 focus:border-yellow-400 outline-none"></label>
+                        <label class="block"><span class="text-gray-600">Email</span><input name="email" id="edit-email" type="email" value="{{ student_email }}" class="mt-2 w-full rounded-2xl border border-gray-200 px-4 py-3 focus:border-yellow-400 outline-none"></label>
+                        <label class="block"><span class="text-gray-600">Phone</span><input name="phone" id="edit-phone" type="text" value="{{ student_phone }}" class="mt-2 w-full rounded-2xl border border-gray-200 px-4 py-3 focus:border-yellow-400 outline-none"></label>
+                        <label class="block"><span class="text-gray-600">Program</span><input name="department" id="edit-program" type="text" value="{{ student_program }}" class="mt-2 w-full rounded-2xl border border-gray-200 px-4 py-3 focus:border-yellow-400 outline-none"></label>
+                        <label class="block"><span class="text-gray-600">Profile Photo</span><input name="profile_image" id="edit-profile-image" type="file" accept="image/png, image/jpeg, image/jpg, image/gif" class="mt-2 w-full text-sm text-gray-700 file:bg-yellow-400 file:text-white file:px-4 file:py-2 file:rounded-lg file:border-0"></label>
+                    </div>
+                    <div class="mt-6 flex justify-end gap-3">
+                        <button type="button" onclick="closeEditModal()" class="px-5 py-3 rounded-2xl bg-gray-100 hover:bg-gray-200">Cancel</button>
+                        <button type="submit" class="px-5 py-3 rounded-2xl bg-yellow-400 hover:bg-yellow-500 text-white">Save Changes</button>
+                    </div>
+                </form>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function closeEditModal() {
+            const modal = document.getElementById('profile-edit-modal');
+            if (modal) modal.remove();
+        }
+
+        function saveProfileChanges() {
+            closeEditModal();
+            showToast('Profile updated successfully');
+        }
+
+        function printResults() {
+            showToast('Preparing results for print');
+            window.print();
+        }
+
+        function downloadTranscript() {
+            showToast('Transcript download started');
+        }
+
+        function downloadReceipt() {
+            showToast('Receipt download started');
+        }
+
+        function clearNotifications() {
+            document.getElementById('notifications-list').innerHTML = `<div class="py-10 text-center text-gray-500">No notifications available.</div>`;
+            showToast('Notifications cleared');
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('active');
+        }
+
+        function initializeStudentPortal() {
+            updateResultSummary();
+            renderCurrentCourses();
+            renderUpcomingEvents();
+            createCharts();
+            renderNotifications();
+            renderMessages();
+            renderDownloads();
+            renderCalendar();
+            document.getElementById('searchInput').addEventListener('input', searchPortal);
+            navigateTo('dashboard');
+            console.log('%cStudent Portal Loaded Successfully!', 'color: #eab308; font-size: 14px;');
+        }
+
+        function logout() {
+            window.location.href = '/logout';
+        }
+
+        window.onload = initializeStudentPortal;
+    </script>
+</body>
+</html>
